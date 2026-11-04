@@ -66,6 +66,9 @@
       "mcp__google-workspace__search_drive_files",
       "mcp__cloud-cgc-pub-mcp__cgc_octocode_search",
       "mcp__cloud-cgc-pvt-mcp__cgc_octocode_search",
+      "mcp__cloudy-cgc-pub-mcp__cgc_octocode_search",
+      "mcp__cloud-me-cgc-pvt-mcp__cgc_octocode_search",
+      "mcp__cloudy-c3-mcp",
       "mcp__cloud-infra-mcp"
     ]
   },

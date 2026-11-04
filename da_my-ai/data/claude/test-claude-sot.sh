@@ -550,10 +550,13 @@ if [ -f "$SIZES" ] && jq -e '.tiers' "$POL" >/dev/null 2>&1; then
   fi
   PROJ="$REPO/../cloudy-t-infra/1_cloud-configs/dist/mcp.project.json"
   if [ -f "$PROJ" ]; then
-    check "generated project .mcp.json holds only default-tier servers" \
-      "$(jq -r --slurpfile p "$POL" '[.mcpServers | keys[] | select(. as $n | $p[0].tiers.default | index($n) | not)] | join(",")' "$PROJ")" ""
+    # Rebrand #1450: until cloudy-t-infra's derive emits the new names, its project
+  # .mcp.json still carries the OLD default names; an alias of a default server
+  # (mcp-policy.json renames.aliases) counts as that server.
+  check "generated project .mcp.json holds only default-tier servers" \
+      "$(jq -r --slurpfile p "$POL" '[.mcpServers | keys[] | select(. as $n | ($p[0].tiers.default | index($n) | not) and ((($p[0].renames.aliases // {})[$n]) as $t | ($t == null) or (($p[0].tiers.default | index($t)) == null)))] | join(",")' "$PROJ")" ""
     check "generated project .mcp.json holds every default-tier server" \
-      "$(jq -r --slurpfile p "$POL" '. as $o | [$p[0].tiers.default[] | select($o.mcpServers[.] | not)] | join(",")' "$PROJ")" ""
+      "$(jq -r --slurpfile p "$POL" '. as $o | [$p[0].tiers.default[] | . as $d | select(($o.mcpServers[$d] | not) and ([($p[0].renames.aliases // {}) | to_entries[] | select(.value == $d and $o.mcpServers[.key]) ] | length == 0))] | join(",")' "$PROJ")" ""
   fi
   # Deployed repos: a server beyond the default tier must be declared opt-in.
   nonconf=""

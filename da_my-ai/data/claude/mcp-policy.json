@@ -9,15 +9,47 @@
     "budget_tokens": 20000,
     "opt_in_everywhere": true,
     "_doc_opt_in_everywhere": "Owner decision 2026-11-04: every repo's .mcp.json carries EVERY fleet server. deploy-dotfiles.sh writes .claude/mcp-optin.json (all of tiers.opt-in) into each repo, which makes the opt-in merge fire. Before this, only repos that hand-wrote that file got the opt-in servers, so google-workspace-mcp and google-personal-mcp were missing from the generated .mcp.json. Set false to return to per-repo opt-in.",
-    "default": ["cloud-infra-mcp", "cloud-superapp-mcp"],
-    "grouped": ["cloud-infra-mcp", "cloud-superapp-mcp"],
-    "opt-in": ["cloud-cgc-pub-mcp", "cloud-cgc-pvt-mcp", "cloud-drive-mcp", "cloud-mail-mcp", "cloud-mattermost-mcp", "cloud-services-mcp", "cloud-vault-mcp", "google-personal-mcp", "google-workspace-mcp"],
+    "default": ["cloudy-c3-mcp", "cloudy-android-mcp"],
+    "grouped": ["cloudy-c3-mcp", "cloudy-android-mcp"],
+    "opt-in": ["cloud-me-cgc-pvt-mcp", "cloudy-all-mcp", "cloudy-apps-communication-mcp", "cloudy-apps-drive-mcp", "cloudy-cgc-pub-mcp", "google-personal-mcp", "google-workspace-mcp", "cloud-cgc-pub-mcp", "cloud-cgc-pvt-mcp", "cloud-drive-mcp", "cloud-infra-mcp", "cloud-mail-mcp", "cloud-mattermost-mcp", "cloud-services-mcp", "cloud-superapp-mcp", "cloud-vault-mcp"],
+    "_doc_aliases": "The last nine opt-in names are the OLD names, kept as aliases for one release (owner decision 2026-11-04, MCP rebrand #1450). They are listed here only so .mcp.json, .claude/mcp-optin.json and the tier guards accept them; see top-level `renames`. Remove them together with `renames.aliases` in the release after the containers are renamed.",
     "platform_allowance": {
       "_doc": "Platform-injected servers that no repo file can remove. ESTIMATE: claude-code-remote exposes about 40 tools; at the fleet average of roughly 150 tokens per tool that is 6000. Replace with a measured number from a fresh session's /context.",
       "claude-code-remote": 6000
     }
   },
+  "renames": {
+    "_doc": "MCP rebrand (#1450, owner decision 2026-11-04): final layout, every name ends in -mcp. `map` is new name -> the old server it is built from, plus `rewrite` pairs applied to every url/arg of the old entry (mesh host c3-<name>.app and the public path segment), and an optional `mesh` url that replaces the --mesh arg (apps-drive: vault tools exist only on a direct mesh hit, see the server gate). deploy-dotfiles.sh (apply-mcp-renames.mjs) and gen-mcp-tpl.sh both add the new entry next to the old one; the old names stay as aliases for one release and are listed in `aliases`. Merges: cloudy-apps-communication-mcp = cloud-mail-mcp + cloud-mattermost-mcp (entry built from mail; the mattermost alias is rewritten to the same endpoint), cloudy-apps-drive-mcp = cloud-drive-mcp + cloud-vault-mcp (vault alias also rewritten to it).",
+    "map": {
+      "cloudy-all-mcp": {"from": "cloud-services-mcp", "rewrite": [["cloud-services-mcp", "cloudy-all-mcp"], ["c3-services-mcp", "cloudy-all-mcp"]]},
+      "cloudy-c3-mcp": {"from": "cloud-infra-mcp", "rewrite": [["cloud-infra-mcp", "cloudy-c3-mcp"]]},
+      "cloudy-android-mcp": {"from": "cloud-superapp-mcp", "rewrite": [["cloud-superapp-mcp", "cloudy-android-mcp"]]},
+      "cloudy-apps-communication-mcp": {"from": "cloud-mail-mcp", "rewrite": [["cloud-mail-mcp", "cloudy-apps-communication-mcp"], ["/mail-mcp/", "/cloudy-apps-communication-mcp/"]]},
+      "cloudy-apps-drive-mcp": {"from": "cloud-drive-mcp", "rewrite": [["cloud-drive-mcp", "cloudy-apps-drive-mcp"]], "mesh": "http://10.0.0.6:3109/mcp"},
+      "cloudy-cgc-pub-mcp": {"from": "cloud-cgc-pub-mcp", "rewrite": [["cloud-cgc-pub-mcp", "cloudy-cgc-pub-mcp"]]},
+      "cloud-me-cgc-pvt-mcp": {"from": "cloud-cgc-pvt-mcp", "rewrite": [["cloud-cgc-pvt-mcp", "cloud-me-cgc-pvt-mcp"]]}
+    },
+    "aliases": {
+      "cloud-services-mcp": "cloudy-all-mcp",
+      "cloud-infra-mcp": "cloudy-c3-mcp",
+      "cloud-superapp-mcp": "cloudy-android-mcp",
+      "cloud-mail-mcp": "cloudy-apps-communication-mcp",
+      "cloud-mattermost-mcp": "cloudy-apps-communication-mcp",
+      "cloud-drive-mcp": "cloudy-apps-drive-mcp",
+      "cloud-vault-mcp": "cloudy-apps-drive-mcp",
+      "cloud-cgc-pub-mcp": "cloudy-cgc-pub-mcp",
+      "cloud-cgc-pvt-mcp": "cloud-me-cgc-pvt-mcp"
+    }
+  },
   "direct_http": {
+    "cloud-me-cgc-pvt-mcp": {
+      "type": "http",
+      "url": "http://10.0.0.6:3107/mcp"
+    },
+    "cloudy-apps-drive-mcp": {
+      "type": "http",
+      "url": "http://10.0.0.6:3109/mcp"
+    },
     "cloud-cgc-pvt-mcp": {
       "type": "http",
       "url": "http://10.0.0.6:3107/mcp"
@@ -32,6 +64,15 @@
     "budget_tokens": 20000,
     "default": "names_only",
     "full": [
+      "cloudy-all-mcp",
+      "cloudy-c3-mcp",
+      "cloudy-android-mcp",
+      "cloudy-apps-communication-mcp",
+      "cloudy-apps-drive-mcp",
+      "cloudy-cgc-pub-mcp",
+      "cloud-me-cgc-pvt-mcp",
+      "google-personal-mcp",
+      "google-workspace-mcp",
       "cloud-cgc-pub-mcp",
       "cloud-cgc-pvt-mcp",
       "cloud-infra-mcp",
@@ -40,9 +81,7 @@
       "cloud-mail-mcp",
       "cloud-mattermost-mcp",
       "cloud-superapp-mcp",
-      "cloud-vault-mcp",
-      "google-personal-mcp",
-      "google-workspace-mcp"
+      "cloud-vault-mcp"
     ],
     "_doc_why_infra_is_not_full": "cloud-infra-mcp (c3-infra) is the other PRIORITY server and is deliberately still names_only, because the measurement forbids the alternative: it alone is 147 tools / ~17,534 tokens. Registering it full leaves 2,466 tokens of the 20,000 budget, and cgc — which Diego requires to 'show it all' — needs 6,342. The two cannot both be full under the ceiling. Priority here means an agent should reach for it FIRST, not that its schemas are preloaded. Making it full again requires collapsing it to meta-tools the way cloud-cgc-mcp went 42 -> 5; until then the number decides, not the label.",
     "measured_tokens": {
@@ -57,12 +96,20 @@
       "cloud-mail-mcp": 270,
       "cloud-superapp-mcp": 1000,
       "google-personal-mcp": 500,
-      "google-workspace-mcp": 500
+      "google-workspace-mcp": 500,
+      "cloudy-all-mcp": 450,
+      "cloudy-c3-mcp": 17534,
+      "cloudy-android-mcp": 1000,
+      "cloudy-apps-communication-mcp": 655,
+      "cloudy-apps-drive-mcp": 1249,
+      "cloudy-cgc-pub-mcp": 3171,
+      "cloud-me-cgc-pvt-mcp": 3171
     },
     "names_only_tokens_each": 40,
     "enforcement": "ratchet",
     "_doc_enforcement": "'ratchet', not 'block'. A hard fail here would refuse to generate a WORKING config in order to honour a ceiling, which is how the outage happened. The guard now reports the projected cost and fails only if it grows beyond baseline_tokens — it cannot get worse silently, and it cannot take the tools away to get better.",
-    "baseline_tokens": 41686,
+    "baseline_tokens": 68916,
+    "_doc_baseline_rebrand": "#1450 (2026-11-04): raised from 41686 to 68916 ONLY because the old cloud-* aliases and the new cloudy-* names are registered side by side for one release (9 duplicate servers, the same backends). Not a regression in tool count. When renames.aliases is removed, set this back to the measured total, about 41686.",
     "_doc_baseline": "The MEASURED total with all eleven registered (2026-09-21). Not a target — a ratchet floor. It may only ever go DOWN, and only by server-side tool reduction."
   },
   "_doc_stdio_extras": "EMPTY BY DESIGN (2026-09-05). This held three stdio servers that made desktop's list differ from termux's forever, which is the drift the user ruled against: 'NO MCP SHOULD BE ABSENT — THE MCP LIST MUST BE SAME EVERYWHERE'. All three are gone because the reason for each disappeared: cloud-vault-mcp and cloud-superapp-mcp were given a real StreamableHTTPServerTransport and now arrive through the DERIVED set for both platforms (verified live: POST /mcp returns 200 with serverInfo for each); cloud-cgc-pub-mcp-local ran the very same src/code/index.ts that the HTTP cloud-cgc-pub-mcp already serves, so it was a duplicate transport, not a distinct capability. Every entry also hardcoded /home/diego/... paths, which resolve on exactly one laptop and dangle everywhere else — the same machine-specific-path reason derive-mcp-json.ts skips stdio in the first place. Do NOT re-add a platform carve-out here: if a server cannot be reached over HTTP, fix the SERVICE so the deriver can see it, rather than re-splitting the lists.",

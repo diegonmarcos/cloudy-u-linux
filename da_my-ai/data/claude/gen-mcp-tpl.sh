@@ -115,6 +115,21 @@ def http_set(auth, filter_names=None, direct=True):
         if filter_names is not None and name not in filter_names:
             continue
         servers[name] = entry
+    # MCP rebrand (#1450): new-name entries next to the old ones (aliases for one
+    # release), from mcp-policy.json renames.map. A direct (mesh IP) old entry
+    # keeps its url; `mesh` overrides it for the merged apps-drive server.
+    for new, spec in pol.get("renames", {}).get("map", {}).items():
+        if new.startswith("_") or spec["from"] not in servers or new in servers:
+            continue
+        old = servers[spec["from"]]
+        url = old["url"]
+        for a_, b_ in spec.get("rewrite", []):
+            url = url.replace(a_, b_)
+        if "mesh" in spec and "headers" not in old:
+            url = spec["mesh"]
+        entry = collections.OrderedDict(old)
+        entry["url"] = url
+        servers[new] = entry
     return collections.OrderedDict(sorted(servers.items()))
 
 

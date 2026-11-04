@@ -208,11 +208,13 @@ if [ "$MODE" = "nudge" ]; then
     # go dead at the next rename — exactly how the pre-split name cloud-cgc-mcp
     # died. Both live names share this prefix and no other server does, so the
     # prefix is both more correct and more durable than any full name here.
+    # Rebrand #1450 (2026-11-04): the live names become cloudy-cgc-pub-mcp and
+    # cloud-me-cgc-pvt-mcp; the old prefix stays for the alias release.
     RESET_PREFIX="$(jq -r '.meta.nudge_reset_prefix // "mcp__cloud-cgc"' "$RULES" 2>/dev/null)"
     STATE="${TMPDIR:-/tmp}/claude-graph-nudge-${SID}"
 
     case "$TOOL" in
-        "$RESET_PREFIX"*) printf '0' > "$STATE" 2>/dev/null || true; exit 0 ;;
+        "$RESET_PREFIX"*|mcp__cloudy-cgc-*|mcp__cloud-me-cgc-*) printf '0' > "$STATE" 2>/dev/null || true; exit 0 ;;
     esac
     # Only tools in meta.nudge_count_tools advance the counter.
     if ! jq -e --arg t "$TOOL" '.meta.nudge_count_tools | index($t)' "$RULES" >/dev/null 2>&1; then

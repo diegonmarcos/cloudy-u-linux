@@ -26,6 +26,10 @@
       "tools": 1,
       "tokens": 227
     },
+    "cloud-me-cgc-pvt-mcp": {
+      "tools": 16,
+      "tokens": 2848
+    },
     "cloud-services-mcp": {
       "tools": 130,
       "tokens": 13617
@@ -34,9 +38,34 @@
       "tools": 2,
       "tokens": 352
     },
+    "cloudy-all-mcp": {
+      "tools": 3,
+      "tokens": 450
+    },
+    "cloudy-android-mcp": {
+      "tools": 2,
+      "tokens": 352
+    },
+    "cloudy-apps-communication-mcp": {
+      "tools": 1,
+      "tokens": 331
+    },
+    "cloudy-apps-drive-mcp": {
+      "tools": 1,
+      "tokens": 319
+    },
+    "cloudy-c3-mcp": {
+      "tools": 7,
+      "tokens": 2878
+    },
+    "cloudy-cgc-pub-mcp": {
+      "tools": 16,
+      "tokens": 2815
+    },
     "google-personal-mcp": {
       "tools": 1,
       "tokens": 857
     }
-  }
+  },
+  "_doc_rebrand": "#1450: new names copy the old server's measurement (router: 3 tools, estimate) until measure-mcp-sizes.sh --write runs against the renamed containers."
 }

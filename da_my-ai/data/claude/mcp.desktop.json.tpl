@@ -4,7 +4,7 @@
   "_exposure": {
     "_doc": "Only mcpServers below are registered and preload tool schemas. Every server in _mcp_catalogue is reachable but NOT preloaded: run tools/list against its url at the moment you need it.",
     "budget_tokens": 20000,
-    "projected_tokens": 41686
+    "projected_tokens": 68916
   },
   "mcpServers": {
     "cloud-cgc-pub-mcp": {
@@ -46,6 +46,10 @@
         "Authorization": "Bearer ${AUTHELIA_OIDC_TOKEN_CLAUDE-ADMIN}"
       }
     },
+    "cloud-me-cgc-pvt-mcp": {
+      "type": "http",
+      "url": "http://10.0.0.6:3107/mcp"
+    },
     "cloud-services-mcp": {
       "type": "http",
       "url": "https://c3-pvt.diegonmarcos.com/cloud-services-mcp/mcp",
@@ -63,6 +67,45 @@
     "cloud-vault-mcp": {
       "type": "http",
       "url": "http://10.0.0.6:3111/mcp"
+    },
+    "cloudy-all-mcp": {
+      "type": "http",
+      "url": "https://c3-pvt.diegonmarcos.com/cloudy-all-mcp/mcp",
+      "headers": {
+        "Authorization": "Bearer ${AUTHELIA_OIDC_TOKEN_CLAUDE-ADMIN}"
+      }
+    },
+    "cloudy-android-mcp": {
+      "type": "http",
+      "url": "https://c3-pvt.diegonmarcos.com/cloudy-android-mcp/mcp",
+      "headers": {
+        "Authorization": "Bearer ${AUTHELIA_OIDC_TOKEN_CLAUDE-ADMIN}"
+      }
+    },
+    "cloudy-apps-communication-mcp": {
+      "type": "http",
+      "url": "https://c3-pvt.diegonmarcos.com/cloudy-apps-communication-mcp/mcp",
+      "headers": {
+        "Authorization": "Bearer ${AUTHELIA_OIDC_TOKEN_CLAUDE-ADMIN}"
+      }
+    },
+    "cloudy-apps-drive-mcp": {
+      "type": "http",
+      "url": "http://10.0.0.6:3109/mcp"
+    },
+    "cloudy-c3-mcp": {
+      "type": "http",
+      "url": "https://c3-pvt.diegonmarcos.com/cloudy-c3-mcp/mcp",
+      "headers": {
+        "Authorization": "Bearer ${AUTHELIA_OIDC_TOKEN_CLAUDE-ADMIN}"
+      }
+    },
+    "cloudy-cgc-pub-mcp": {
+      "type": "http",
+      "url": "https://c3-pvt.diegonmarcos.com/cloudy-cgc-pub-mcp/mcp",
+      "headers": {
+        "Authorization": "Bearer ${AUTHELIA_OIDC_TOKEN_CLAUDE-ADMIN}"
+      }
     },
     "google-personal-mcp": {
       "type": "http",

@@ -13,5 +13,6 @@ Each rule: statement, Why, Guard.
 - Android UI is dense Compose UI. Why: owner standing order 2026-10-21. Guard: none.
 - Nothing is downloaded at runtime; assets and data ship in the build. Why: offline-first apps. Guard: none.
 - Never `git add -f`; never npm or npx locally; try commands without sudo first. Why: ignored files are ignored on purpose; local toolchains drift. Guard: none.
-- Use cloud-infra-mcp (or gh) for GitHub, VM and Cloudflare operations; a missing capability becomes a tool there. Why: one audited control plane. Guard: none.
+- Use cloudy-c3-mcp (or gh) for GitHub, VM and Cloudflare operations; a missing capability becomes a tool there. Why: one audited control plane. Guard: none.
 - Never quote the owner verbatim in commits, comments, specs or tickets; neutral third-person engineering prose. Why: publication rule, several repos are public. Guard: none.
+- Fleet MCP names (final layout, every name ends in -mcp): cloudy-all-mcp (router: list_servers, list_tools(server), call(server, tool, args)), cloudy-c3-mcp, cloudy-android-mcp, cloudy-apps-communication-mcp (mail + mattermost), cloudy-apps-drive-mcp (drive + vault, vault mesh-only), cloudy-cgc-pub-mcp, cloud-me-cgc-pvt-mcp, google-workspace-mcp, google-personal-mcp. The old cloud-* names stay as aliases for one release (mcp-policy.json `renames`). Why: owner decision 2026-11-04, one naming scheme. Guard: test-claude-sot.sh tier checks.
