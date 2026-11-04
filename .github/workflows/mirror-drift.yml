@@ -1,0 +1,31 @@
+# Drift guard for the Claude/agent config mirrors (#1448). Fails when any owner
+# repo's _dotfiles / .claude / .mcp.json differs from da_my-ai/data/claude, or
+# when a .mcp.json lacks a fleet MCP server. Fix = regenerate with
+# da_my-ai/engines/dotfiles/deploy-dotfiles.sh in that repo, never edit a mirror.
+name: mirror-drift
+on:
+  push:
+    paths: ['da_my-ai/data/claude/**', 'da_my-ai/engines/dotfiles/**']
+  schedule: [{cron: '17 5 * * *'}]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {path: sot}
+      - name: Clone the listed repos and compare
+        env:
+          # read-only token with access to the private owner repos
+          GH_READ_TOKEN: ${{ secrets.FLEET_READ_TOKEN }}
+        run: |
+          set -u
+          mkdir fleet; dirs=(); skipped=0
+          for r in $(grep -v '^#' sot/da_my-ai/data/claude/mirror-repos.txt); do
+            [ "$r" = cloudy-u-linux ] && { dirs+=("$PWD/sot"); continue; }
+            if git clone -q --depth 1 "https://x-access-token:${GH_READ_TOKEN:-}@github.com/diegonmarcos/$r" "fleet/$r" 2>/dev/null; then dirs+=("$PWD/fleet/$r")
+            else echo "::warning::cannot clone $r (token missing or no access)"; skipped=$((skipped+1)); fi
+          done
+          bash sot/da_my-ai/data/claude/check-mirrors.sh "${dirs[@]}"

@@ -518,6 +518,13 @@ if [ -d "$ENG" ]; then
     "$(grep -c 'engines/dotfiles' "${CLOUD_INFRA_DIR:-$REPO/../cloudy-t-infra}/9_others/src/deploy-dotfiles.sh" 2>/dev/null || echo 1)" 1
 fi
 
+# ── repo mirrors equal the SoT (drift guard) ─────────────────────────────────
+# check-mirrors.sh compares each sibling checkout that has _dotfiles/ byte for
+# byte with this SoT and requires every fleet MCP in its .mcp.json. CI runs it
+# against all repos in mirror-repos.txt (.github/workflows/mirror-drift.yml).
+check "every sibling repo mirror equals the SoT and its .mcp.json lists every fleet server" \
+  "$("$SOT/check-mirrors.sh" 2>&1 | grep -c '^DRIFT')" 0
+
 # ── MCP token budget: a default session loads <= 20k MCP tokens ──────────────
 # Owner rule. mcp-policy.json .tiers declares default (every session) vs opt-in
 # (only when a repo lists the server in .claude/mcp-optin.json). The guard sums
