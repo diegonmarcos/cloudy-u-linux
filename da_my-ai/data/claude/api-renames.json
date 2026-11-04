@@ -1,0 +1,16 @@
+{
+  "_doc": "API rebrand (#1450, owner decision 2026-11-04), the sibling of mcp-policy.json `renames` for the HTTP APIs. `map` is new name -> old name; the old name stays as an alias for one release (container, DNS and Caddy route are served under both until the owner removes the old one). Clients try the new name first and fall back to the old one (see hooks/ai-usage-post.sh). `name_only` are labels with no container. `unchanged` keeps its name. Source of the deploy steps: ticket #1450 metadata.deploy.",
+  "map": {
+    "cloudy-all-api": "c3-services-api",
+    "cloudy-c3-api": "c3-infra-api",
+    "cloudy-apps-communication-api": "http-to-smtp-proxy-api",
+    "cloudy-cgc-pub-api": "kg-store-pub",
+    "cloud-me-cgc-pvt-api": "kg-store",
+    "google-auth-api": "auth-broker-google"
+  },
+  "name_only": {
+    "cloudy-android-api": "the phone debug API (no container)",
+    "cloudy-apps-drive-api": "only if a shared backend is needed (no container yet)"
+  },
+  "unchanged": ["capital-stack-finterminal-api", "scrappers-api", "tokens-api", "embeddings-api", "git-proxy-api", "my-ai-api", "claude-superset-api", "auth-broker-github", "auth-broker-email", "auth-broker-cloudflare"]
+}

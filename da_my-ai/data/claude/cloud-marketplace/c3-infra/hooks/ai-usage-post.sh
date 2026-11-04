@@ -12,15 +12,16 @@
 # Auth: mesh leg first (the mesh is trusted, no credential); public leg with a scoped bearer from C3_AI_USAGE_TOKEN
 # (or the file C3_AI_USAGE_TOKEN_FILE, or minted from the AUTHELIA_* client credentials the cloud environment injects).
 # The credential travels on curl's stdin config, never in argv, and is never printed.
-# Env: C3_AI_USAGE_MESH_URL (default https://c3-infra-api.mesh.diegonmarcos.com), C3_AI_USAGE_URL (public, default
-#      https://c3-pvt.diegonmarcos.com/c3-infra-api), AI_USAGE_SYNC=1 (foreground, for tests), AI_USAGE_STATE (state dir).
+# Env: C3_AI_USAGE_MESH_URL (default https://cloudy-c3-api.mesh.diegonmarcos.com, then the old c3-infra-api host), C3_AI_USAGE_URL (public, default
+#      https://c3-pvt.diegonmarcos.com/cloudy-c3-api, then /c3-infra-api), AI_USAGE_SYNC=1 (foreground, for tests), AI_USAGE_STATE (state dir).
 set -u
 MODE="${1:-hook}"
 STATE="${AI_USAGE_STATE:-${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}}"
 MIN="${AI_USAGE_MIN_INTERVAL:-60}"
 case "$MIN" in ""|*[!0-9]*) MIN=60;; esac
-MESH="${C3_AI_USAGE_MESH_URL:-https://c3-infra-api.mesh.diegonmarcos.com}"
-PUB="${C3_AI_USAGE_URL:-https://c3-pvt.diegonmarcos.com/c3-infra-api}"
+# API rebrand (#1450): cloudy-c3-api is the new name, c3-infra-api the alias for one release; try new first.
+MESH="${C3_AI_USAGE_MESH_URL:-https://cloudy-c3-api.mesh.diegonmarcos.com https://c3-infra-api.mesh.diegonmarcos.com}"
+PUB="${C3_AI_USAGE_URL:-https://c3-pvt.diegonmarcos.com/cloudy-c3-api https://c3-pvt.diegonmarcos.com/c3-infra-api}"
 
 num()  { case "$1" in ""|*[!0-9.]*|*.*.*|.*) return 1;; esac; return 0; }
 int()  { case "$1" in ""|*[!0-9]*) return 1;; esac; return 0; }
@@ -62,9 +63,11 @@ send() {
     chmod 600 "$tmp" 2>/dev/null
     printf '%s' "$BODY" > "$tmp"
     # 1) mesh leg: trusted network, no credential, short timeout
-    code="$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 2 --max-time 4 -X POST \
-        -H 'Content-Type: application/json' --data-binary "@$tmp" "$MESH/ai/usage/claude" 2>/dev/null)" || code=000
-    case "$code" in 2??) rm -f "$tmp"; return 0;; esac
+    for m in $MESH; do
+        code="$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 2 --max-time 4 -X POST \
+            -H 'Content-Type: application/json' --data-binary "@$tmp" "$m/ai/usage/claude" 2>/dev/null)" || code=000
+        case "$code" in 2??) rm -f "$tmp"; return 0;; esac
+    done
     # 2) public leg with the scoped bearer
     tok="${C3_AI_USAGE_TOKEN:-}"
     [ -z "$tok" ] && [ -n "${C3_AI_USAGE_TOKEN_FILE:-}" ] && [ -r "$C3_AI_USAGE_TOKEN_FILE" ] && tok="$(head -c 4096 "$C3_AI_USAGE_TOKEN_FILE" | tr -d '\r\n ')"
@@ -79,9 +82,12 @@ send() {
         fi
     fi
     if [ -n "$tok" ]; then
-        printf 'header = "Authorization: Bearer %s"\n' "$tok" \
-            | curl -s -o /dev/null --connect-timeout 3 --max-time 6 -X POST -H 'Content-Type: application/json' \
-                --data-binary "@$tmp" -K - "$PUB/ai/usage/claude" >/dev/null 2>&1
+        for u in $PUB; do
+            code="$(printf 'header = "Authorization: Bearer %s"\n' "$tok" \
+                | curl -s -o /dev/null -w '%{http_code}' --connect-timeout 3 --max-time 6 -X POST -H 'Content-Type: application/json' \
+                    --data-binary "@$tmp" -K - "$u/ai/usage/claude" 2>/dev/null)" || code=000
+            case "$code" in 2??) break;; esac
+        done
     fi
     rm -f "$tmp"
 }
