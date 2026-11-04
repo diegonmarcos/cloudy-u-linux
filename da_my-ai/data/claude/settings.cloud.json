@@ -19,6 +19,6 @@
     "AUTHELIA_TOKEN_URL=https://auth.diegonmarcos.com/api/oidc/token",
     "AUTHELIA_OIDC_CLIENT_ID=<narrow client, not claude-admin>",
     "AUTHELIA_OIDC_CLIENT_SECRET=<from the vault, injected by the environment config>",
-    "C3_AI_USAGE_TOKEN=<optional, scoped fleet ft_ token from tokens-api for POST cloud-me-c3-infra-api (old c3-infra-api) /ai/usage/claude (#1151); without it ai-usage-post.sh mints from the AUTHELIA_* pair above>"
+    "C3_AI_USAGE_TOKEN=<optional, scoped fleet ft_ token from tokens-api for POST cloudy-c3-api (old c3-infra-api) /ai/usage/claude (#1151); without it ai-usage-post.sh mints from the AUTHELIA_* pair above>"
   ]
 }
