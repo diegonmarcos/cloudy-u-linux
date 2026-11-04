@@ -12,16 +12,16 @@
 # Auth: mesh leg first (the mesh is trusted, no credential); public leg with a scoped bearer from C3_AI_USAGE_TOKEN
 # (or the file C3_AI_USAGE_TOKEN_FILE, or minted from the AUTHELIA_* client credentials the cloud environment injects).
 # The credential travels on curl's stdin config, never in argv, and is never printed.
-# Env: C3_AI_USAGE_MESH_URL (default https://cloudy-c3-infra-api.mesh.diegonmarcos.com, then the old c3-infra-api host), C3_AI_USAGE_URL (public, default
-#      https://c3-pvt.diegonmarcos.com/cloudy-c3-infra-api, then /c3-infra-api), AI_USAGE_SYNC=1 (foreground, for tests), AI_USAGE_STATE (state dir).
+# Env: C3_AI_USAGE_MESH_URL (default https://cloud-me-c3-infra-api.mesh.diegonmarcos.com, then the old c3-infra-api host), C3_AI_USAGE_URL (public, default
+#      https://c3-pvt.diegonmarcos.com/cloud-me-c3-infra-api, then /c3-infra-api), AI_USAGE_SYNC=1 (foreground, for tests), AI_USAGE_STATE (state dir).
 set -u
 MODE="${1:-hook}"
 STATE="${AI_USAGE_STATE:-${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}}"
 MIN="${AI_USAGE_MIN_INTERVAL:-60}"
 case "$MIN" in ""|*[!0-9]*) MIN=60;; esac
-# API rebrand (#1450): cloudy-c3-infra-api is the new name, c3-infra-api the alias for one release; try new first.
-MESH="${C3_AI_USAGE_MESH_URL:-https://cloudy-c3-infra-api.mesh.diegonmarcos.com https://c3-infra-api.mesh.diegonmarcos.com}"
-PUB="${C3_AI_USAGE_URL:-https://c3-pvt.diegonmarcos.com/cloudy-c3-infra-api https://c3-pvt.diegonmarcos.com/c3-infra-api}"
+# API rebrand (#1450): cloud-me-c3-infra-api is the new name, c3-infra-api the alias for one release; try new first.
+MESH="${C3_AI_USAGE_MESH_URL:-https://cloud-me-c3-infra-api.mesh.diegonmarcos.com https://c3-infra-api.mesh.diegonmarcos.com}"
+PUB="${C3_AI_USAGE_URL:-https://c3-pvt.diegonmarcos.com/cloud-me-c3-infra-api https://c3-pvt.diegonmarcos.com/c3-infra-api}"
 
 num()  { case "$1" in ""|*[!0-9.]*|*.*.*|.*) return 1;; esac; return 0; }
 int()  { case "$1" in ""|*[!0-9]*) return 1;; esac; return 0; }
@@ -36,7 +36,8 @@ if [ "$MODE" = "statusline" ]; then
     if num "$p5" && int "$r5"; then W="\"five_hour\":{\"used_percentage\":$p5,\"resets_at\":$r5}"; fi
     if num "$p7" && int "$r7"; then W="${W:+$W,}\"seven_day\":{\"used_percentage\":$p7,\"resets_at\":$r7}"; fi
     [ -n "$W" ] || exit 0
-    BODY="{\"source\":\"statusline\",\"host\":\"$HOST\"${sid:+,\"session_id\":\"$sid\"},$W}"
+    # observed_at = the poster's clock (epoch s): the SuperApp ages the sample and derives "days elapsed" from it
+    BODY="{\"source\":\"statusline\",\"host\":\"$HOST\"${sid:+,\"session_id\":\"$sid\"},\"observed_at\":$(date +%s),$W}"
 else
     MODE=hook
     IN="$(cat 2>/dev/null || true)"
@@ -71,6 +72,7 @@ send() {
     # 2) public leg with the scoped bearer
     tok="${C3_AI_USAGE_TOKEN:-}"
     [ -z "$tok" ] && [ -n "${C3_AI_USAGE_TOKEN_FILE:-}" ] && [ -r "$C3_AI_USAGE_TOKEN_FILE" ] && tok="$(head -c 4096 "$C3_AI_USAGE_TOKEN_FILE" | tr -d '\r\n ')"
+    [ -z "$tok" ] && tok="${AUTHELIA_BEARER_TOKEN:-}"   # ready-made bearer the cloud environment may inject
     if [ -z "$tok" ] && [ -n "${AUTHELIA_TOKEN_URL:-}" ] && [ -n "${AUTHELIA_OIDC_CLIENT_ID:-}" ] && [ -n "${AUTHELIA_OIDC_CLIENT_SECRET:-}" ]; then
         cache="$STATE/claude-ai-usage-post.token"
         if [ -f "$cache" ] && [ $(( now - $(date -r "$cache" +%s 2>/dev/null || echo 0) )) -lt 240 ]; then tok="$(cat "$cache" 2>/dev/null)"
