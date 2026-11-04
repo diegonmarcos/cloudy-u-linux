@@ -22,7 +22,7 @@ STUB
 chmod +x "$T/bin/curl"
 export PATH="$T/bin:$PATH" STUB_LOG="$T/log" AI_USAGE_STATE="$T/state" AI_USAGE_SYNC=1 AI_USAGE_HOST=test-host
 export C3_AI_USAGE_MESH_URL=https://mesh.example C3_AI_USAGE_URL=https://pub.example/c3-infra-api
-unset C3_AI_USAGE_TOKEN C3_AI_USAGE_TOKEN_FILE AUTHELIA_TOKEN_URL AUTHELIA_OIDC_CLIENT_ID AUTHELIA_OIDC_CLIENT_SECRET
+unset C3_AI_USAGE_TOKEN C3_AI_USAGE_TOKEN_FILE AUTHELIA_BEARER_TOKEN AUTHELIA_TOKEN_URL AUTHELIA_OIDC_CLIENT_ID AUTHELIA_OIDC_CLIENT_SECRET
 reset() { : > "$T/log"; rm -f "$T"/state/*; }
 calls() { grep -c '^ARGV' "$T/log"; }
 
@@ -30,7 +30,7 @@ calls() { grep -c '^ARGV' "$T/log"; }
 reset; bash "$P" statusline 23.5 1738425600 41.2 1738857600 sess-1 >/dev/null 2>&1
 [ "$(calls)" = 1 ] && ok || bad "mesh answered 2xx: exactly one call (got $(calls))"
 grep -q 'ARGV .*https://mesh.example/ai/usage/claude' "$T/log" && ok || bad "mesh URL is the first leg"
-grep -q 'BODY {"source":"statusline","host":"test-host","session_id":"sess-1","five_hour":{"used_percentage":23.5,"resets_at":1738425600},"seven_day":{"used_percentage":41.2,"resets_at":1738857600}}' "$T/log" && ok || bad "body shape"
+grep -q 'BODY {"source":"statusline","host":"test-host","session_id":"sess-1","observed_at":[0-9]\{10\},"five_hour":{"used_percentage":23.5,"resets_at":1738425600},"seven_day":{"used_percentage":41.2,"resets_at":1738857600}}' "$T/log" && ok || bad "body shape"
 
 # 2 throttle: a second post inside the interval is dropped, outside it goes through
 bash "$P" statusline 24 1738425600 41.2 1738857600 >/dev/null 2>&1

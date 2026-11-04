@@ -36,7 +36,8 @@ if [ "$MODE" = "statusline" ]; then
     if num "$p5" && int "$r5"; then W="\"five_hour\":{\"used_percentage\":$p5,\"resets_at\":$r5}"; fi
     if num "$p7" && int "$r7"; then W="${W:+$W,}\"seven_day\":{\"used_percentage\":$p7,\"resets_at\":$r7}"; fi
     [ -n "$W" ] || exit 0
-    BODY="{\"source\":\"statusline\",\"host\":\"$HOST\"${sid:+,\"session_id\":\"$sid\"},$W}"
+    # observed_at = the poster's clock (epoch s): the SuperApp ages the sample and derives "days elapsed" from it
+    BODY="{\"source\":\"statusline\",\"host\":\"$HOST\"${sid:+,\"session_id\":\"$sid\"},\"observed_at\":$(date +%s),$W}"
 else
     MODE=hook
     IN="$(cat 2>/dev/null || true)"
@@ -71,6 +72,7 @@ send() {
     # 2) public leg with the scoped bearer
     tok="${C3_AI_USAGE_TOKEN:-}"
     [ -z "$tok" ] && [ -n "${C3_AI_USAGE_TOKEN_FILE:-}" ] && [ -r "$C3_AI_USAGE_TOKEN_FILE" ] && tok="$(head -c 4096 "$C3_AI_USAGE_TOKEN_FILE" | tr -d '\r\n ')"
+    [ -z "$tok" ] && tok="${AUTHELIA_BEARER_TOKEN:-}"   # ready-made bearer the cloud environment may inject
     if [ -z "$tok" ] && [ -n "${AUTHELIA_TOKEN_URL:-}" ] && [ -n "${AUTHELIA_OIDC_CLIENT_ID:-}" ] && [ -n "${AUTHELIA_OIDC_CLIENT_SECRET:-}" ]; then
         cache="$STATE/claude-ai-usage-post.token"
         if [ -f "$cache" ] && [ $(( now - $(date -r "$cache" +%s 2>/dev/null || echo 0) )) -lt 240 ]; then tok="$(cat "$cache" 2>/dev/null)"
