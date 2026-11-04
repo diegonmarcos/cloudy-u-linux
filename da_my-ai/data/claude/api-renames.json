@@ -1,16 +1,25 @@
 {
-  "_doc": "API rebrand (#1450, owner decision 2026-11-04), the sibling of mcp-policy.json `renames` for the HTTP APIs. `map` is new name -> old name; the old name stays as an alias for one release (container, DNS and Caddy route are served under both until the owner removes the old one). Clients try the new name first and fall back to the old one (see hooks/ai-usage-post.sh). `name_only` are labels with no container. `unchanged` keeps its name. Source of the deploy steps: ticket #1450 metadata.deploy.",
+  "_doc": "API rebrand (#1450). Owner list REPLACED 2026-11-04: pattern cloudy-<app family>-<function>-api (cloud-me-... for private). `map` is new name -> old name; the old name stays as an alias for one release (container, DNS and Caddy route served under both). Clients try the new name first and fall back to the old (hooks/ai-usage-post.sh). The earlier names cloudy-all-api, cloudy-c3-api, cloudy-apps-communication-api, cloudy-cgc-pub-api, cloud-me-cgc-pvt-api, google-auth-api, cloudy-android-api and cloudy-apps-drive-api are dropped. Deploy steps: ticket #1450 metadata.deploy.",
   "map": {
-    "cloudy-all-api": "c3-services-api",
-    "cloudy-c3-api": "c3-infra-api",
-    "cloudy-apps-communication-api": "http-to-smtp-proxy-api",
-    "cloudy-cgc-pub-api": "kg-store-pub",
-    "cloud-me-cgc-pvt-api": "kg-store",
-    "google-auth-api": "auth-broker-google"
-  },
-  "name_only": {
-    "cloudy-android-api": "the phone debug API (no container)",
-    "cloudy-apps-drive-api": "only if a shared backend is needed (no container yet)"
-  },
-  "unchanged": ["capital-stack-finterminal-api", "scrappers-api", "tokens-api", "embeddings-api", "git-proxy-api", "my-ai-api", "claude-superset-api", "auth-broker-github", "auth-broker-email", "auth-broker-cloudflare"]
+    "cloudy-mail-http-to-smtp-api": "http-to-smtp-proxy-api",
+    "cloudy-browser-scrapper-api": "scrappers-api",
+    "cloudy-ai-tokens-api": "tokens-api",
+    "cloudy-c3-infra-api": "c3-infra-api",
+    "cloudy-c3-services-api": "c3-services-api",
+    "cloudy-finterm-market-api": "capital-stack-finterminal-api",
+    "cloudy-ai-embeddings-api": "embeddings-api",
+    "cloudy-ai-agents-api": "my-ai-api",
+    "cloudy-ai-claude-api": "claude-superset-api",
+    "cloudy-drive-git-proxy-api": "git-proxy-api",
+    "cloudy-cgc-pub-graph-api": "kg-store-pub",
+    "cloud-me-cgc-pvt-graph-api": "kg-store",
+    "cloudy-auth-google-api": "auth-broker-google",
+    "cloudy-auth-github-api": "auth-broker-github",
+    "cloudy-auth-email-api": "auth-broker-email",
+    "cloudy-auth-cloudflare-api": "auth-broker-cloudflare",
+    "cloudy-ai-memory-api": "session-memory",
+    "cloudy-news-rss-api": "rss-gateway",
+    "cloudy-news-github-rss-api": "github-rss",
+    "cloudy-news-gdelt-api": "news-gdelt"
+  }
 }
