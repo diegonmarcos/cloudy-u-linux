@@ -55,8 +55,8 @@
       "tokens": 319
     },
     "cloudy-c3-mcp": {
-      "tools": 7,
-      "tokens": 2878
+      "tools": 17,
+      "tokens": 4700
     },
     "cloudy-cgc-pub-mcp": {
       "tools": 16,
@@ -67,5 +67,6 @@
       "tokens": 857
     }
   },
+  "_doc_c3_merge": "#1495 cloudy-c3-mcp = the 8 grouped legacy dispatchers (infra_devops ... infra_peers) + infra_help + the tree dispatchers c3_infra, c3_containers, c3_home, c3_ops, c3_observ, c3_configs + c3_tree + c3_help = 17 tools; 4700 tokens is an ESTIMATE (2878 + the peers group about 1000 + the tree about 800) until measure-mcp-sizes.sh --write runs against the deployed container. cloudy-android-mcp and cloud-superapp-mcp are aliases of it: they are not default, so they cost nothing here.",
   "_doc_rebrand": "#1450: new names copy the old server's measurement (router: 3 tools, estimate) until measure-mcp-sizes.sh --write runs against the renamed containers."
 }

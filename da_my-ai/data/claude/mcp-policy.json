@@ -9,10 +9,10 @@
     "budget_tokens": 20000,
     "opt_in_everywhere": true,
     "_doc_opt_in_everywhere": "Owner decision 2026-11-04: every repo's .mcp.json carries EVERY fleet server. deploy-dotfiles.sh writes .claude/mcp-optin.json (all of tiers.opt-in) into each repo, which makes the opt-in merge fire. Before this, only repos that hand-wrote that file got the opt-in servers, so google-workspace-mcp and google-personal-mcp were missing from the generated .mcp.json. Set false to return to per-repo opt-in.",
-    "default": ["cloudy-c3-mcp", "cloudy-android-mcp"],
-    "grouped": ["cloudy-c3-mcp", "cloudy-android-mcp"],
-    "opt-in": ["cloud-me-cgc-pvt-mcp", "cloudy-all-mcp", "cloudy-apps-communication-mcp", "cloudy-apps-drive-mcp", "cloudy-cgc-pub-mcp", "google-personal-mcp", "google-workspace-mcp", "cloud-cgc-pub-mcp", "cloud-cgc-pvt-mcp", "cloud-drive-mcp", "cloud-infra-mcp", "cloud-mail-mcp", "cloud-mattermost-mcp", "cloud-services-mcp", "cloud-superapp-mcp", "cloud-vault-mcp"],
-    "_doc_aliases": "The last nine opt-in names are the OLD names, kept as aliases for one release (owner decision 2026-11-04, MCP rebrand #1450). They are listed here only so .mcp.json, .claude/mcp-optin.json and the tier guards accept them; see top-level `renames`. Remove them together with `renames.aliases` in the release after the containers are renamed.",
+    "default": ["cloudy-c3-mcp"],
+    "grouped": ["cloudy-c3-mcp"],
+    "opt-in": ["cloud-me-cgc-pvt-mcp", "cloudy-all-mcp", "cloudy-apps-communication-mcp", "cloudy-apps-drive-mcp", "cloudy-cgc-pub-mcp", "google-personal-mcp", "google-workspace-mcp", "cloud-cgc-pub-mcp", "cloud-cgc-pvt-mcp", "cloud-drive-mcp", "cloud-infra-mcp", "cloudy-android-mcp", "cloud-mail-mcp", "cloud-mattermost-mcp", "cloud-services-mcp", "cloud-superapp-mcp", "cloud-vault-mcp"],
+    "_doc_aliases": "The last ten opt-in names are the OLD names, kept as aliases for one release (cloudy-android-mcp and cloud-superapp-mcp are aliases of cloudy-c3-mcp since #1495: the phone tools are its peers-control tool group) (owner decision 2026-11-04, MCP rebrand #1450). They are listed here only so .mcp.json, .claude/mcp-optin.json and the tier guards accept them; see top-level `renames`. Remove them together with `renames.aliases` in the release after the containers are renamed.",
     "platform_allowance": {
       "_doc": "Platform-injected servers that no repo file can remove. ESTIMATE: claude-code-remote exposes about 40 tools; at the fleet average of roughly 150 tokens per tool that is 6000. Replace with a measured number from a fresh session's /context.",
       "claude-code-remote": 6000
@@ -23,7 +23,7 @@
     "map": {
       "cloudy-all-mcp": {"from": "cloud-services-mcp", "rewrite": [["cloud-services-mcp", "cloudy-all-mcp"], ["c3-services-mcp", "cloudy-all-mcp"]]},
       "cloudy-c3-mcp": {"from": "cloud-infra-mcp", "rewrite": [["cloud-infra-mcp", "cloudy-c3-mcp"]]},
-      "cloudy-android-mcp": {"from": "cloud-superapp-mcp", "rewrite": [["cloud-superapp-mcp", "cloudy-android-mcp"]]},
+      "cloudy-android-mcp": {"from": "cloud-superapp-mcp", "rewrite": [["cloud-superapp-mcp", "cloudy-android-mcp"]], "_doc": "#1495 an ALIAS entry, not a server: cloudy-android-mcp was merged into cloudy-c3-mcp (peers-control tool group). The edge routes /cloud-superapp-mcp and /cloudy-android-mcp to the cloudy-c3-mcp container's /mcp-android endpoint, which also serves the old superapp dispatcher. Remove with renames.aliases in the release after."},
       "cloudy-apps-communication-mcp": {"from": "cloud-mail-mcp", "rewrite": [["cloud-mail-mcp", "cloudy-apps-communication-mcp"], ["/mail-mcp/", "/cloudy-apps-communication-mcp/"]]},
       "cloudy-apps-drive-mcp": {"from": "cloud-drive-mcp", "rewrite": [["cloud-drive-mcp", "cloudy-apps-drive-mcp"]], "mesh": "http://10.0.0.6:3109/mcp"},
       "cloudy-cgc-pub-mcp": {"from": "cloud-cgc-pub-mcp", "rewrite": [["cloud-cgc-pub-mcp", "cloudy-cgc-pub-mcp"]]},
@@ -32,7 +32,8 @@
     "aliases": {
       "cloud-services-mcp": "cloudy-all-mcp",
       "cloud-infra-mcp": "cloudy-c3-mcp",
-      "cloud-superapp-mcp": "cloudy-android-mcp",
+      "cloud-superapp-mcp": "cloudy-c3-mcp",
+      "cloudy-android-mcp": "cloudy-c3-mcp",
       "cloud-mail-mcp": "cloudy-apps-communication-mcp",
       "cloud-mattermost-mcp": "cloudy-apps-communication-mcp",
       "cloud-drive-mcp": "cloudy-apps-drive-mcp",
