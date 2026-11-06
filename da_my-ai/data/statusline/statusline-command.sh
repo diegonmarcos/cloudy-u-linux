@@ -119,6 +119,9 @@ if [ -n "$rl_5h" ] || [ -n "$rl_7d" ]; then
     # its network part and always exits 0, so this line cannot slow or fail a render. No curl/jq here by design.
     [ -x "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/claude-ai-usage-post.sh" ] &&
         bash "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/claude-ai-usage-post.sh" statusline "$rl_5h" "$rl_5h_reset" "$rl_7d" "$rl_7d_reset" "$session_id" </dev/null >/dev/null 2>&1
+    # #1543 and, at most every 10 min (the poster throttles), the per-day x model token totals of the usage daemon.
+    [ -x "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/claude-ai-usage-post.sh" ] &&
+        bash "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/claude-ai-usage-post.sh" tokens </dev/null >/dev/null 2>&1
 elif [ -f "$rl_sticky" ]; then
     { read -r rl_5h; read -r rl_7d; read -r rl_7d_reset; } < "$rl_sticky" 2>/dev/null
 fi

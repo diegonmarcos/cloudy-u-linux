@@ -77,8 +77,28 @@ s=$(date +%s%N); STUB_SLEEP=3 bash "$P" statusline 10 1738425600 "" "" >/dev/nul
 export AI_USAGE_SYNC=1
 PATH="/usr/bin:/bin" bash "$P" statusline 10 1738425600 "" "" >/dev/null 2>&1; [ $? = 0 ] && ok || bad "exit 0 even without curl on PATH"
 
+# 6b tokens mode (#1543): the daemon's `daily` rows go to /ai/usage/claude/tokens, bad rows dropped, throttled apart
+if command -v jq >/dev/null 2>&1; then
+    reset
+    cat > "$T/snap.json" <<'J'
+{"daily":[{"date":"2026-11-05","model":"claude-opus-5-5","input":10,"output":20,"cache_write":30,"cache_read":40,"cost":0.5},
+          {"date":"bad","model":"claude-opus-5-5","input":1},{"date":"2026-11-05","model":"x\"y$(id)","input":1}]}
+J
+    AI_USAGE_SNAPSHOT="$T/snap.json" bash "$P" tokens >/dev/null 2>&1
+    grep -q 'ARGV .*https://mesh.example/ai/usage/claude/tokens' "$T/log" && ok || bad "tokens route"
+    grep -q 'BODY {"source":"statusline","host":"test-host","observed_at":[0-9]\{10\},"days":\[{"date":"2026-11-05","model":"claude-opus-5-5","input":10,"output":20,"cache_write":30,"cache_read":40,"cost":0.5}\]}' "$T/log" && ok || bad "tokens body shape / bad rows dropped"
+    AI_USAGE_SNAPSHOT="$T/snap.json" bash "$P" tokens >/dev/null 2>&1
+    [ "$(calls)" = 1 ] && ok || bad "tokens throttled (calls=$(calls))"
+    bash "$P" statusline 10 1738425600 "" "" >/dev/null 2>&1
+    [ "$(calls)" = 2 ] && ok || bad "tokens stamp does not throttle the statusline post"
+    reset; AI_USAGE_SNAPSHOT="$T/none.json" bash "$P" tokens >/dev/null 2>&1
+    echo '{"daily":[]}' > "$T/empty.json"; AI_USAGE_SNAPSHOT="$T/empty.json" AI_USAGE_TOKENS_INTERVAL=0 bash "$P" tokens >/dev/null 2>&1
+    [ "$(calls)" = 0 ] && ok || bad "no snapshot / no rows: nothing posted"
+fi
+
 # 7 wiring: the statusline refresher calls it; the engine embeds and installs it; the cloud hook is declared
 grep -q 'claude-ai-usage-post.sh' "$D/statusline-command.sh" && ok || bad "statusline-command.sh does not call the poster"
+grep -q 'claude-ai-usage-post.sh" tokens' "$D/statusline-command.sh" && ok || bad "statusline-command.sh does not ship the token totals"
 grep -q 'claude-ai-usage-post.sh", include_str!("../../data/claude/cloud-marketplace/c3-infra/hooks/ai-usage-post.sh"), true' "$D/../../engines/statusline-assets/statusline_assets.rs" && ok || bad "statusline-assets does not embed the poster"
 [ "$(jq -r '[.hooks.StopFailure[]?.hooks[]?.command] | map(select(test("ai-usage-post.sh"))) | length' "$D/../claude/settings.project.json")" = 1 ] && ok || bad "settings.project.json lacks the StopFailure hook"
 [ -x "$P" ] && ok || bad "poster not executable"

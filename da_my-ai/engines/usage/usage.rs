@@ -471,6 +471,32 @@ pub struct Scanner {
     /// Shared table for `UsageEntry::model` / `UsageEntry::session` — see
     /// `Interner`.
     interner: Interner,
+    /// #1543 Per UTC day x model totals of every deduped record read, whatever
+    /// its age (unlike `entries`, which is the 24h block window). Bounded to
+    /// DAILY_KEEP_DAYS, so it is a few hundred small rows. Published as
+    /// `daily` in the snapshot; the ai-usage poster ships it to cloudy-c3-api,
+    /// which merges hosts and restarts (a restarted daemon skips cold files, so
+    /// the API keeps the per-field max of what each host reported).
+    daily: BTreeMap<(i64, Rc<str>), DayTotals>,
+}
+
+/// One UTC day x model bucket of `Scanner::daily`.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DayTotals {
+    pub input: u64,
+    pub output: u64,
+    pub cache_write: u64,
+    pub cache_read: u64,
+    pub cost: f64,
+}
+
+/// How many UTC days `Scanner::daily` keeps (two months and a bit, for the Monthly table).
+pub const DAILY_KEEP_DAYS: i64 = 62;
+
+/// `YYYY-MM-DD` of a days-since-epoch number.
+pub fn fmt_day(day: i64) -> String {
+    let (y, m, d) = civil_from_days(day);
+    format!("{y:04}-{m:02}-{d:02}")
 }
 
 /// Deterministic (non-randomized) 64-bit hash of a dedup key. `DefaultHasher`
@@ -510,6 +536,8 @@ impl Scanner {
         // totals below are still all-time; only the per-entry window (used for
         // the 5h block math) is bounded at ingestion.
         let cutoff = now_ms() - RETAIN_MS;
+        let first_day = now_ms().div_euclid(86_400_000) - (DAILY_KEEP_DAYS - 1);
+        let daily_cutoff = first_day * 86_400_000;
         for path in files {
             alive.insert(path.clone());
             let meta = match fs::metadata(&path) {
@@ -601,6 +629,17 @@ impl Scanner {
                     self.seen.clear();
                 }
                 let p = pricing.price_for(&entry.model);
+                if entry.ts_ms >= daily_cutoff {
+                    let d = self.daily.entry((entry.ts_ms.div_euclid(86_400_000), entry.model.clone())).or_default();
+                    d.input += entry.input;
+                    d.output += entry.output;
+                    d.cache_write += entry.cache_write;
+                    d.cache_read += entry.cache_read;
+                    d.cost += (entry.input as f64 / 1e6) * p.input
+                        + (entry.output as f64 / 1e6) * p.output
+                        + (entry.cache_write as f64 / 1e6) * p.cache_write
+                        + (entry.cache_read as f64 / 1e6) * p.cache_read;
+                }
                 let s = self.sessions.entry(sid.clone()).or_default();
                 s.input += entry.input;
                 s.output += entry.output;
@@ -665,6 +704,22 @@ impl Scanner {
         // that's gone from disk is never going to be tailed again, so drop it
         // rather than carry a dead PathBuf key for the process lifetime.
         self.offsets.retain(|p, _| alive.contains(p));
+        self.daily.retain(|(day, _), _| *day >= first_day);
+    }
+
+    /// #1543 `daily` rows of the snapshot: one per UTC day x model, oldest first.
+    pub fn daily_json(&self) -> Vec<Value> {
+        self.daily
+            .iter()
+            .map(|((day, model), t)| {
+                serde_json::json!({
+                    "date": fmt_day(*day), "model": model.as_ref(),
+                    "input": t.input, "output": t.output,
+                    "cache_write": t.cache_write, "cache_read": t.cache_read,
+                    "cost": (t.cost * 1e6).round() / 1e6,
+                })
+            })
+            .collect()
     }
 
     pub fn sessions(&self) -> &BTreeMap<String, SessionTotals> {
@@ -774,6 +829,7 @@ impl Scanner {
             "block_sessions": block_sessions,
             "sessions": sessions,
             "blocks": global_blocks(&home, &cwd),
+            "daily": self.daily_json(),
         })
         .to_string()
     }
@@ -1010,6 +1066,9 @@ mod tests {
         // one hour later differs by exactly 3_600_000 ms
         let later = parse_rfc3339_ms("2026-07-31T12:31:04.123Z").unwrap();
         assert_eq!(later - ms, 3_600_000);
+        // #1543 the daily bucket key formats back to the same calendar day
+        assert_eq!(fmt_day(days_from_civil(2026, 11, 6)), "2026-11-06");
+        assert_eq!(fmt_day(ms.div_euclid(86_400_000)), "2026-07-31");
     }
 
     #[test]
@@ -1127,6 +1186,11 @@ mod tests {
         // The snapshot must expose those sessions by id.
         let snap: Value = serde_json::from_str(&s.snapshot_json(&pricing, now_ms())).unwrap();
         assert_eq!(snap["sessions"]["sess-a"]["input"], 135);
+        // #1543 ...and the per-day x model totals, summed over both sessions.
+        let daily = snap["daily"].as_array().expect("daily missing from snapshot");
+        let sum: u64 = daily.iter().map(|r| r["input"].as_u64().unwrap()).sum();
+        assert_eq!(sum, 142, "daily input over both sessions: {snap}");
+        assert!(daily.iter().all(|r| r["date"].as_str().unwrap().len() == 10 && r["model"].is_string()));
         assert_eq!(snap["sessions"]["sess-b"]["total_tokens"], 7);
 
         // `block_sessions` must actually be SERIALISED. It was computed and then
