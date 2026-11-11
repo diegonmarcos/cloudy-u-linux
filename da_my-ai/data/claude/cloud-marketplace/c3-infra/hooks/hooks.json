@@ -12,7 +12,19 @@
           { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/no-secrets-commit.sh" },
           { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/no-mass-delete.sh" }
         ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|Bash|TaskCreate|TaskUpdate",
+        "hooks": [
+          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/ticket-guard.sh" }
+        ]
       }
+    ],
+    "SessionStart": [
+      { "hooks": [ { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/backlog-session-start.sh", "timeout": 20 } ] }
+    ],
+    "Stop": [
+      { "hooks": [ { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/backlog-stop-push.sh", "timeout": 90 } ] }
     ]
   }
 }
