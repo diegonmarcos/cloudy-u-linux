@@ -1,0 +1,86 @@
+#!/bin/bash
+# relay-inbox.sh (#1795): mesh path, non-mesh (cloud) path, no token, relay down, lease winner, reply routing,
+# token never in argv/output, exit 0 and under 5 s. curl is stubbed on PATH (no server is started).
+H="$(cd "$(dirname "$0")/.." && pwd)"; fail=0; n=0
+W="$(mktemp -d)"; mkdir -p "$W/bin"
+cat > "$W/bin/curl" <<'EOF'
+#!/bin/bash
+printf '%s\n' "$*" >> "$FAKE_LOG"; cat > /dev/null
+for a in "$@"; do u="$a"; done
+case "$u" in
+  */c3bot-relay/health) [ "${FAKE_HEALTH:-up}" = up ] && exit 0; [ "$FAKE_HEALTH" = slow ] && sleep 10; exit 7;;
+  */c3bot-relay/claim) printf '%s' "${FAKE_CLAIM:-}";;
+  */c3bot-relay/poll*) printf '%s' "${FAKE_POLL:-}";;
+esac
+EOF
+chmod +x "$W/bin/curl"
+TOKV="tok-$(date +%s%N)-secret"
+run() { # dir tag [VAR=value...] ; prints hook stdout (token and cloud flag unset unless given)
+  local d="$1" tag="$2"; shift 2
+  env -u C3BOT_RELAY_TOKEN -u CLAUDE_CODE_REMOTE PATH="$W/bin:$PATH" FAKE_LOG="$W/argv.log" C3BOT_RELAY_DIR="$d" C3BOT_SESSION_TAG="$tag" C3BOT_RELAY_URL=http://relay.test "$@" \
+    bash "$H/relay-inbox.sh" < /dev/null; }
+sent() { env C3BOT_RELAY_DIR="$1" C3BOT_SESSION_TAG="$2" bash "$H/relay-inbox.sh" sent "$3"; }
+ck() { n=$((n+1)); if eval "$2"; then :; else echo "FAIL relay-inbox: $1"; fail=$((fail+1)); fi; }
+P='{"messages":[{"id":11,"message_id":501,"text":"plain one"},{"id":12,"message_id":502,"text":"reply to A","reply_to_message":{"message_id":900,"text":"[c3:AAAAAA] done"}},{"id":13,"message_id":503,"text":"reply to B by log","reply_to_message":{"message_id":777,"text":"status"}},{"id":14,"message_id":504,"text":"reply to B by tag","reply_to_message":{"message_id":778,"text":"[c3:BBBBBB] x"}}],"cursor":14}'
+
+# 1 mesh path: holder A gets the plain message and its own reply; cursor saved; token never on argv or stdout
+D="$W/a"; mkdir -p "$D"; : > "$W/argv.log"
+o="$(run "$D" c3:AAAAAA C3BOT_RELAY_TOKEN="$TOKV" FAKE_CLAIM='{"holder":"c3:AAAAAA"}' FAKE_POLL="$P")"; rc=$?
+ck "mesh exit 0" '[ $rc = 0 ]'
+ck "mesh injects additionalContext" 'printf "%s" "$o" | grep -q additionalContext'
+ck "mesh holder gets plain message" 'printf "%s" "$o" | grep -q "plain one"'
+ck "mesh reply by tag goes to A" 'printf "%s" "$o" | grep -q "reply to A"'
+ck "mesh reply tagged for B not shown to A" '! printf "%s" "$o" | grep -q "reply to B by tag"'
+ck "cursor saved" '[ "$(cat "$D/c3bot-relay-cursor")" = 14 ]'
+ck "poll used after=0&wait=0" 'grep -q "poll?after=0&wait=0" "$W/argv.log"'
+ck "token never in argv" '! grep -q "$TOKV" "$W/argv.log"'
+ck "token never printed" '! printf "%s" "$o" | grep -q "$TOKV"'
+# second run: nothing new -> silent, polls after the saved cursor
+: > "$W/argv.log"; o="$(run "$D" c3:AAAAAA C3BOT_RELAY_TOKEN="$TOKV" FAKE_CLAIM='{"holder":"c3:AAAAAA"}' FAKE_POLL='{"messages":[],"cursor":14}')"
+ck "nothing new is silent" '[ -z "$o" ]'
+ck "poll after saved cursor" 'grep -q "poll?after=14" "$W/argv.log"'
+
+# 2 lease: one winner. B is not the holder -> no plain message; B gets the reply addressed to it through its sent log
+D="$W/b"; mkdir -p "$D"
+sent "$D" c3:BBBBBB 777 >/dev/null; ck "sent logs the id with the tag" 'grep -qx "777 c3:BBBBBB" "$D/c3bot-relay-sent.log"'
+o="$(run "$D" c3:BBBBBB C3BOT_RELAY_TOKEN="$TOKV" FAKE_CLAIM='{"holder":"c3:AAAAAA"}' FAKE_POLL="$P")"
+ck "non-holder does not get the plain message" '! printf "%s" "$o" | grep -q "plain one"'
+ck "reply routed to B by sent log" 'printf "%s" "$o" | grep -q "reply to B by log"'
+ck "reply tagged for B goes to B" 'printf "%s" "$o" | grep -q "reply to B by tag"'
+ck "reply for A not shown to B" '! printf "%s" "$o" | grep -q "reply to A"'
+
+# 3 shared host: A and B share one dir/cursor; B runs first, A still gets what was not B's (pending file)
+D="$W/shared"; mkdir -p "$D"; sent "$D" c3:BBBBBB 777 >/dev/null
+o="$(run "$D" c3:BBBBBB C3BOT_RELAY_TOKEN="$TOKV" FAKE_CLAIM='{"holder":"c3:AAAAAA"}' FAKE_POLL="$P")"
+ck "shared host: B takes only its reply" 'printf "%s" "$o" | grep -q "reply to B by log" && ! printf "%s" "$o" | grep -q "plain one"'
+o="$(run "$D" c3:AAAAAA C3BOT_RELAY_TOKEN="$TOKV" FAKE_CLAIM='{"holder":"c3:AAAAAA"}' FAKE_POLL='{"messages":[],"cursor":14}')"
+ck "shared host: A gets the plain message and its reply from pending" 'printf "%s" "$o" | grep -q "plain one" && printf "%s" "$o" | grep -q "reply to A" && ! printf "%s" "$o" | grep -q "reply to B"'
+o="$(run "$D" c3:AAAAAA C3BOT_RELAY_TOKEN="$TOKV" FAKE_CLAIM='{"holder":"c3:AAAAAA"}' FAKE_POLL='{"messages":[],"cursor":14}')"
+ck "shared host: delivered once" '[ -z "$o" ]'
+
+ck "shared host: B's tagged reply also to B, not A" '! printf "%s" "$o" | grep -q "reply to B by tag"'
+# 4 no token on a mesh host: silent, no poll
+D="$W/c"; mkdir -p "$D"; : > "$W/argv.log"
+o="$(run "$D" c3:CCCCCC FAKE_POLL="$P")"; rc=$?
+ck "no token: exit 0 and silent" '[ $rc = 0 ] && [ -z "$o" ]'
+ck "no token: no poll" '! grep -q poll "$W/argv.log"'
+
+# 5 relay down off a cloud container: silent; in a cloud container: the send_later instruction
+o="$(run "$D" c3:CCCCCC C3BOT_RELAY_TOKEN="$TOKV" FAKE_HEALTH=down)"; rc=$?
+ck "relay down local: exit 0 and silent" '[ $rc = 0 ] && [ -z "$o" ]'
+o="$(run "$D" c3:CCCCCC FAKE_HEALTH=down CLAUDE_CODE_REMOTE=true)"; rc=$?
+ck "cloud path: exit 0" '[ $rc = 0 ]'
+ck "cloud path: send_later instruction" 'printf "%s" "$o" | grep -q "send_later" && printf "%s" "$o" | grep -q "docker_exec" && printf "%s" "$o" | grep -q "c3bot-relay" && printf "%s" "$o" | grep -q "telegram_send"'
+ck "cloud path: tagged and one pending check" 'printf "%s" "$o" | grep -q "\[c3:CCCCCC\]" && printf "%s" "$o" | grep -q "never two"'
+ck "cloud path: valid JSON" 'printf "%s" "$o" | node -e "let s=\"\";process.stdin.on(\"data\",d=>s+=d).on(\"end\",()=>JSON.parse(s))"'
+
+# 6 deadline: a hanging relay still returns in under 5 s with exit 0
+s=$(date +%s%N); o="$(run "$D" c3:CCCCCC FAKE_HEALTH=slow C3BOT_RELAY_TOKEN="$TOKV")"; rc=$?; e=$(( ($(date +%s%N)-s)/1000000 ))
+ck "hang: exit 0 under 5 s (${e} ms)" '[ $rc = 0 ] && [ $e -lt 5000 ]'
+# 7 disabled
+o="$(run "$D" c3:CCCCCC C3BOT_RELAY=0 C3BOT_RELAY_TOKEN="$TOKV" FAKE_POLL="$P")"; ck "C3BOT_RELAY=0 is silent" '[ -z "$o" ]'
+# 8 session tag from the SessionStart JSON
+o="$(echo '{"session_id":"session_01NDsNpzm1"}' | env C3BOT_RELAY_DIR="$W/t" bash -c '_C3_RELAY_INNER=1 _C3_RELAY_IN="$(cat)" bash "$0" tag' "$H/relay-inbox.sh")"
+ck "tag from session_id" '[ "$o" = c3:01NDsN ]'
+rm -rf "$W"
+echo "relay-inbox tests: $n cases, $fail failed"; [ "$fail" = 0 ]

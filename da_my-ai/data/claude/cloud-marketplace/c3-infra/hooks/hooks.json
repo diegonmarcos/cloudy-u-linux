@@ -21,7 +21,8 @@
       }
     ],
     "SessionStart": [
-      { "hooks": [ { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/backlog-session-start.sh", "timeout": 20 } ] }
+      { "hooks": [ { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/backlog-session-start.sh", "timeout": 20 },
+                   { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/relay-inbox.sh", "timeout": 5 } ] }
     ],
     "Stop": [
       { "hooks": [ { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/backlog-stop-push.sh", "timeout": 90 } ] }
