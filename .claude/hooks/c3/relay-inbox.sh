@@ -77,8 +77,13 @@ const others=new Set();try{for(const l of fs.readFileSync(sentF,"utf8").split("\
 const idOf=m=>Number(m.cursor??m.seq??m.update_id??m.id??(m.message&&m.message.message_id)??0)||0;
 let max=Number(cur)||0;const take=[],keep=[];
 for(const e of all)max=Math.max(max,idOf(e));const list=all.filter(isMsg);
+// telegram.sent {text, message_ids}: a send tagged [c3:x] gives the ids of what session x sent (auto sent log)
+const newSent=[];for(const e of all){if(e.type!=="telegram.sent")continue;const tm=String(e.text||"").match(/^\s*\[(c3:[^\]\s]+)\]/);if(!tm)continue;
+ for(const id of (e.message_ids||[])){const k=String(id);if(tm[1]===tag){if(!mine.has(k)){mine.add(k);newSent.push(k+" "+tag)}}else others.add(k)}}
 for(const raw of pend.concat(list)){
- const m=raw.message||raw;let rt=m.reply_to_message||raw.reply_to_message||m.reply_to||raw.reply_to||null;
+ const m=raw.message||raw;// relay telegram.message: the reply target is in the raw update (message or edited_message)
+const up=raw.update||m.update||{};const um=up.message||up.edited_message||{};
+let rt=um.reply_to_message||m.reply_to_message||raw.reply_to_message||m.reply_to||raw.reply_to||null;
  if(rt!==null&&typeof rt!=="object")rt={message_id:rt};let to="lease";
  if(rt){const rid=String(rt.message_id||"");const rtx=String(rt.text||"");
   const tm=rtx.match(/\[(c3:[^\]\s]+)\]/);
@@ -87,8 +92,9 @@ for(const raw of pend.concat(list)){
  if(to==="me"||(to==="lease"&&iHold))take.push(m);else keep.push(raw)}
 keep.splice(0,Math.max(0,keep.length-50));
 const nc=String(Math.max(Number(p.cursor??p.next??p.last_id??0)||0,max));
-const txt=take.map(m=>{const q=m.reply_to_message||m.reply_to;const r=q?" (reply to "+(typeof q==="object"?q.message_id:q)+")":"";
+const txt=take.map(m=>{const uq=((m.update||{}).message||(m.update||{}).edited_message||{}).reply_to_message;const q=uq||m.reply_to_message||m.reply_to;const r=q?" (reply to "+(typeof q==="object"?q.message_id:q)+")":"";
  return "- id "+(m.message_id||m.id||"?")+r+": "+String(m.text||m.caption||"").slice(0,2000)}).join("\n");
+if(newSent.length)try{fs.appendFileSync(sentF,newSent.join("\n")+"\n")}catch(e){}
 process.stdout.write(JSON.stringify({cursor:nc,keep:keep,txt:txt,holder:iHold}))' "$TAG" "$cursor" "$SENT" "$PEND" 2>/dev/null)"
 [ -z "$R" ] && exit 0
 nc="$(printf '%s' "$R" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);process.stdout.write(r.cursor)})')"

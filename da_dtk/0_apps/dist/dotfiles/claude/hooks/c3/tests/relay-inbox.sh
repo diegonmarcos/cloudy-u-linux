@@ -72,6 +72,15 @@ ck "events: granted holder A gets plain + its reply from pending" 'printf "%s" "
 o="$(run "$D" c3:AAAAAA C3BOT_RELAY_TOKEN="$TOKV" FAKE_CLAIM='{"ok":false}' FAKE_POLL='{"ok":true,"cursor":23,"events":[]}')"
 ck "claim failed: nothing delivered" '[ -z "$o" ]'
 ck "tag fits relay session regex" 'printf "%s" "$(env C3BOT_RELAY_DIR="$D" C3BOT_SESSION_TAG="c3:bad tag/x" bash "$H/relay-inbox.sh" tag)" | grep -qxE "[A-Za-z0-9_.:-]{1,128}"'
+# 3c real relay event: reply target in update.message.reply_to_message; telegram.sent fills the sent log
+D="$W/real"; mkdir -p "$D"
+X='{"ok":true,"head":33,"cursor":33,"events":[{"seq":30,"type":"telegram.sent","chat_id":1,"text":"[c3:BBBBBB] build green","message_ids":[880]},{"seq":31,"type":"telegram.message","source":"telegram","update_id":9,"chat_id":1,"from":{"id":1,"username":"o","name":"O"},"message_id":701,"text":"real reply B","date":1,"update":{"update_id":9,"message":{"message_id":701,"text":"real reply B","reply_to_message":{"message_id":880}}}},{"seq":32,"type":"telegram.message","message_id":702,"text":"real edit A","update":{"edited_message":{"message_id":702,"reply_to_message":{"message_id":881,"text":"[c3:AAAAAA] hi"}}}},{"seq":33,"type":"telegram.message","message_id":703,"text":"real plain","update":{"message":{"message_id":703}}}]}'
+o="$(run "$D" c3:BBBBBB C3BOT_RELAY_TOKEN="$TOKV" FAKE_CLAIM='{"ok":true,"granted":false,"holder":"c3:AAAAAA"}' FAKE_POLL="$X")"
+ck "real: telegram.sent tagged B logs 880 for B" 'grep -qx "880 c3:BBBBBB" "$D/c3bot-relay-sent.log"'
+ck "real: B gets the reply to 880 via update.message" 'printf "%s" "$o" | grep -q "real reply B" && printf "%s" "$o" | grep -q "reply to 880"'
+ck "real: B gets neither the edit for A nor the plain" '! printf "%s" "$o" | grep -q "real edit A" && ! printf "%s" "$o" | grep -q "real plain"'
+o="$(run "$D" c3:AAAAAA C3BOT_RELAY_TOKEN="$TOKV" FAKE_CLAIM='{"ok":true,"granted":true,"holder":"c3:AAAAAA"}' FAKE_POLL='{"ok":true,"cursor":33,"events":[]}')"
+ck "real: holder A gets its edited reply and the plain, not B's" 'printf "%s" "$o" | grep -q "real edit A" && printf "%s" "$o" | grep -q "real plain" && ! printf "%s" "$o" | grep -q "real reply B"'
 # 4 no token on a mesh host: silent, no poll
 D="$W/c"; mkdir -p "$D"; : > "$W/argv.log"
 o="$(run "$D" c3:CCCCCC FAKE_POLL="$P")"; rc=$?
