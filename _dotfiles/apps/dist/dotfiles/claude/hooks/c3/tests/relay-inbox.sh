@@ -59,6 +59,19 @@ o="$(run "$D" c3:AAAAAA C3BOT_RELAY_TOKEN="$TOKV" FAKE_CLAIM='{"holder":"c3:AAAA
 ck "shared host: delivered once" '[ -z "$o" ]'
 
 ck "shared host: B's tagged reply also to B, not A" '! printf "%s" "$o" | grep -q "reply to B by tag"'
+# 3b relay shapes (orchestrator spec): events[] with seq/type, reply_to as an id or object, claim granted:false
+D="$W/shape"; mkdir -p "$D"; sent "$D" c3:BBBBBB 777
+E='{"ok":true,"head":23,"cursor":23,"events":[{"seq":20,"type":"telegram.message","message_id":601,"text":"ev plain"},{"seq":21,"type":"relay.ack","text":"not an owner msg"},{"seq":22,"type":"telegram.message","message_id":602,"text":"ev reply B","reply_to":777},{"seq":23,"type":"telegram.message","message_id":603,"text":"ev reply A","reply_to":{"message_id":905,"text":"[c3:AAAAAA] hi"}}]}'
+o="$(run "$D" c3:BBBBBB C3BOT_RELAY_TOKEN="$TOKV" FAKE_CLAIM='{"ok":true,"granted":false,"holder":"c3:AAAAAA","expiresAt":1}' FAKE_POLL="$E")"
+ck "events: B gets reply by numeric reply_to" 'printf "%s" "$o" | grep -q "ev reply B"'
+ck "events: granted:false gets no plain message" '! printf "%s" "$o" | grep -q "ev plain"'
+ck "events: non-message types are skipped" '! printf "%s" "$o" | grep -q "not an owner msg"'
+ck "events: cursor = relay cursor" '[ "$(cat "$D/c3bot-relay-cursor")" = 23 ]'
+o="$(run "$D" c3:AAAAAA C3BOT_RELAY_TOKEN="$TOKV" FAKE_CLAIM='{"ok":true,"granted":true,"holder":"c3:AAAAAA","renewed":true,"expiresAt":1}' FAKE_POLL='{"ok":true,"head":23,"cursor":23,"events":[]}')"
+ck "events: granted holder A gets plain + its reply from pending" 'printf "%s" "$o" | grep -q "ev plain" && printf "%s" "$o" | grep -q "ev reply A" && ! printf "%s" "$o" | grep -q "ev reply B" && ! printf "%s" "$o" | grep -q "not an owner"'
+o="$(run "$D" c3:AAAAAA C3BOT_RELAY_TOKEN="$TOKV" FAKE_CLAIM='{"ok":false}' FAKE_POLL='{"ok":true,"cursor":23,"events":[]}')"
+ck "claim failed: nothing delivered" '[ -z "$o" ]'
+ck "tag fits relay session regex" 'printf "%s" "$(env C3BOT_RELAY_DIR="$D" C3BOT_SESSION_TAG="c3:bad tag/x" bash "$H/relay-inbox.sh" tag)" | grep -qxE "[A-Za-z0-9_.:-]{1,128}"'
 # 4 no token on a mesh host: silent, no poll
 D="$W/c"; mkdir -p "$D"; : > "$W/argv.log"
 o="$(run "$D" c3:CCCCCC FAKE_POLL="$P")"; rc=$?

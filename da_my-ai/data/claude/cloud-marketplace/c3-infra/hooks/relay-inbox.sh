@@ -30,6 +30,7 @@ sid="$(printf '%s' "${_C3_RELAY_IN:-}" | node -e 'let s="";process.stdin.on("dat
 if [ -n "${C3BOT_SESSION_TAG:-}" ]; then TAG="$C3BOT_SESSION_TAG"
 elif [ -n "$sid" ]; then s="${sid#session_}"; TAG="c3:${s:0:6}"
 else TAG="c3:$(hostname 2>/dev/null | cut -c1-6)"; fi
+TAG="$(printf '%s' "$TAG" | tr -c 'A-Za-z0-9_.:-' '_' | cut -c1-128)"
 
 case "${1:-}" in
   tag) printf '%s\n' "$TAG"; exit 0;;
@@ -65,23 +66,28 @@ const fs=require("fs");const [tag,cur,sentF,pendF]=process.argv.slice(1);
 const J=s=>{try{return JSON.parse(s)}catch(e){return null}};
 const p=J(process.env.C3_POLL||"")||{};const c=J(process.env.C3_CLAIM||"")||{};
 const holder=String(c.holder||c.session||(c.lease&&c.lease.session)||"");
-const iHold=holder?holder===tag:(c.ok===true||c.won===true||c.granted===true);
-let list=Array.isArray(p)?p:(p.messages||p.items||p.updates||p.result||[]);
+// relay shape: {ok, granted, holder, renewed?, expiresAt}; fallbacks kept
+const iHold=typeof c.granted==="boolean"?(c.granted&&(!holder||holder===tag)):(holder?holder===tag:(c.ok===true||c.won===true));
+// relay shape: {ok, head, cursor, events:[{seq,type,...}]}; only type telegram.message is an owner message
+let all=Array.isArray(p)?p:(p.events||p.messages||p.items||p.updates||p.result||[]);
+const isMsg=e=>!e.type||e.type==="telegram.message";
 let pend=[];try{pend=fs.readFileSync(pendF,"utf8").split("\n").filter(Boolean).map(J).filter(Boolean)}catch(e){}
 const mine=new Set();try{for(const l of fs.readFileSync(sentF,"utf8").split("\n")){const [id,t]=l.split(" ");if(t===tag)mine.add(id)}}catch(e){}
 const others=new Set();try{for(const l of fs.readFileSync(sentF,"utf8").split("\n")){const [id,t]=l.split(" ");if(id&&t&&t!==tag)others.add(id)}}catch(e){}
 const idOf=m=>Number(m.cursor??m.seq??m.update_id??m.id??(m.message&&m.message.message_id)??0)||0;
 let max=Number(cur)||0;const take=[],keep=[];
-for(const raw of pend.concat(list)){const fromPend=pend.includes(raw);if(!fromPend)max=Math.max(max,idOf(raw));
- const m=raw.message||raw;const rt=m.reply_to_message||raw.reply_to_message||null;let to="lease";
+for(const e of all)max=Math.max(max,idOf(e));const list=all.filter(isMsg);
+for(const raw of pend.concat(list)){
+ const m=raw.message||raw;let rt=m.reply_to_message||raw.reply_to_message||m.reply_to||raw.reply_to||null;
+ if(rt!==null&&typeof rt!=="object")rt={message_id:rt};let to="lease";
  if(rt){const rid=String(rt.message_id||"");const rtx=String(rt.text||"");
   const tm=rtx.match(/\[(c3:[^\]\s]+)\]/);
   if(mine.has(rid)||(tm&&tm[1]===tag))to="me";else if(others.has(rid)||tm)to="other";else to="lease"}
  // others on this host share the cursor: what is not ours stays in the pending file for its owner (capped at 50)
  if(to==="me"||(to==="lease"&&iHold))take.push(m);else keep.push(raw)}
 keep.splice(0,Math.max(0,keep.length-50));
-const nc=String(p.cursor??p.next??p.last_id??max);
-const txt=take.map(m=>{const r=m.reply_to_message?" (reply to "+m.reply_to_message.message_id+")":"";
+const nc=String(Math.max(Number(p.cursor??p.next??p.last_id??0)||0,max));
+const txt=take.map(m=>{const q=m.reply_to_message||m.reply_to;const r=q?" (reply to "+(typeof q==="object"?q.message_id:q)+")":"";
  return "- id "+(m.message_id||m.id||"?")+r+": "+String(m.text||m.caption||"").slice(0,2000)}).join("\n");
 process.stdout.write(JSON.stringify({cursor:nc,keep:keep,txt:txt,holder:iHold}))' "$TAG" "$cursor" "$SENT" "$PEND" 2>/dev/null)"
 [ -z "$R" ] && exit 0
