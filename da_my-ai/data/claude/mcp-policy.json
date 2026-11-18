@@ -57,7 +57,7 @@
     },
     "cloud-vault-mcp": {
       "type": "http",
-      "url": "http://10.0.0.6:3111/mcp"
+      "url": "http://10.0.0.6:3109/mcp"
     }
   },
   "exposure": {
