@@ -752,17 +752,6 @@ fn docker_every_ticks(mem_total_kb: u64, cpus: usize) -> u64 {
     }
 }
 
-fn mem_total_kb() -> u64 {
-    std::fs::read_to_string("/proc/meminfo")
-        .ok()
-        .and_then(|m| {
-            m.lines()
-                .find(|l| l.starts_with("MemTotal:"))
-                .and_then(|l| l.split_whitespace().nth(1))
-                .and_then(|v| v.parse().ok())
-        })
-        .unwrap_or(0)
-}
 
 const PROC_AVG_WINDOWS: [f64; 4] = [10.0, 60.0, 300.0, 900.0];
 const PROC_AVG_LABELS: [&str; 4] = ["10s", "1m", "5m", "15m"];
@@ -4253,7 +4242,7 @@ pub fn spawn() {
         let mut compose = compose_json();
         let mut tick: u64 = 0;
         let docker_every = docker_every_ticks(
-            mem_total_kb(),
+            mem_total_kb() as u64,
             std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1),
         );
         loop {
