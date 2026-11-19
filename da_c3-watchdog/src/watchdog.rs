@@ -731,6 +731,38 @@ struct ProcAvg {
 const SERVICES_EVERY_TICKS: u64 = 15;
 /// smaps_rollup is a page-table walk; 5 ticks at INTERVAL_MS is 10s.
 const PSS_EVERY_TICKS: u64 = 5;
+/// Container/image/daemon refresh cadence on a SMALL box: 150 ticks at
+/// INTERVAL_MS = 300s. `docker stats --no-stream` samples every container
+/// twice; on a 1-OCPU burstable VM with its CPU credit spent it takes up to
+/// 20s, so the 30s service cadence ran it almost back to back. Measured on
+/// oci-mail (E2.1.Micro, 2026-11-19): this sampler ~17% and dockerd ~18% of
+/// the CPU while steal sat at 50-74% and the mail stack timed out. A start/
+/// stop/rm/pull still refreshes at once (`acted`), so the panel never shows
+/// stale state after an action; only the idle refresh slows down.
+const DOCKER_EVERY_TICKS_SMALL: u64 = 150;
+/// "Small" = at most this much RAM or a single CPU (the E2.1.Micro shape).
+const SMALL_BOX_MEM_KB: u64 = 1_536 * 1024;
+
+/// How many ticks between idle container refreshes on this machine.
+fn docker_every_ticks(mem_total_kb: u64, cpus: usize) -> u64 {
+    if (mem_total_kb > 0 && mem_total_kb <= SMALL_BOX_MEM_KB) || cpus == 1 {
+        DOCKER_EVERY_TICKS_SMALL
+    } else {
+        SERVICES_EVERY_TICKS
+    }
+}
+
+fn mem_total_kb() -> u64 {
+    std::fs::read_to_string("/proc/meminfo")
+        .ok()
+        .and_then(|m| {
+            m.lines()
+                .find(|l| l.starts_with("MemTotal:"))
+                .and_then(|l| l.split_whitespace().nth(1))
+                .and_then(|v| v.parse().ok())
+        })
+        .unwrap_or(0)
+}
 
 const PROC_AVG_WINDOWS: [f64; 4] = [10.0, 60.0, 300.0, 900.0];
 const PROC_AVG_LABELS: [&str; 4] = ["10s", "1m", "5m", "15m"];
@@ -4220,6 +4252,10 @@ pub fn spawn() {
         let mut networks = networks_json();
         let mut compose = compose_json();
         let mut tick: u64 = 0;
+        let docker_every = docker_every_ticks(
+            mem_total_kb(),
+            std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1),
+        );
         loop {
             std::thread::sleep(std::time::Duration::from_millis(INTERVAL_MS));
             // Did anyone ask for something this tick? Checked BEFORE draining,
@@ -4282,7 +4318,7 @@ pub fn spawn() {
             // same instant, and letting them drift apart is what made the
             // images page say "nothing runs this" about an image a container
             // on the page beside it was visibly running.
-            if tick % SERVICES_EVERY_TICKS == 0 || acted {
+            if tick % docker_every == 0 || acted {
                 let c = containers_json();
                 containers = c.0;
                 images = c.1;
@@ -4352,6 +4388,20 @@ pub fn spawn() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // oci-mail / oci-analytics (E2.1.Micro: 1 OCPU, 1 GB) must not run
+    // `docker stats` every 30s; bigger boxes keep the 30s refresh.
+    #[test]
+    fn docker_refresh_is_slow_on_small_boxes_only() {
+        let gib = 1024 * 1024;
+        assert_eq!(docker_every_ticks(954 * 1024, 2), DOCKER_EVERY_TICKS_SMALL);
+        assert_eq!(docker_every_ticks(24 * gib, 1), DOCKER_EVERY_TICKS_SMALL);
+        assert_eq!(docker_every_ticks(24 * gib, 4), SERVICES_EVERY_TICKS);
+        assert_eq!(docker_every_ticks(8 * gib, 8), SERVICES_EVERY_TICKS);
+        // Unreadable meminfo (0) alone does not make a box "small".
+        assert_eq!(docker_every_ticks(0, 4), SERVICES_EVERY_TICKS);
+        assert_eq!(DOCKER_EVERY_TICKS_SMALL * INTERVAL_MS, 300_000);
+    }
 
     // The whole point is a percentage from two cumulative samples; getting the
     // idle/total arithmetic backwards would show a busy machine as idle.
