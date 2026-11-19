@@ -5,21 +5,21 @@
   "x86_64-linux": {
     "c3-watchdog-d": {
       "asset": "c3-watchdog-x86_64",
-      "hash": "sha256-IWsCCyMf/+HynNjRB3p1VIziVZhx0K3bVYhk328v2CE="
+      "hash": "sha256-K4IOYwWJmSNimvrAkrzkZtcEPeHBMQXA0gB8JU2xeuU="
     },
     "c3-watchdog-tui": {
       "asset": "c3-watchdog-tui-x86_64",
-      "hash": "sha256-Ef+BA5Pni5d2MXGy1VNWRYc11PbRcMIQcM8kK+G0+Mg="
+      "hash": "sha256-Ji2Yq8cTLe9sTGgsmPx6PfsMHCoIFO5o2V39WIZoHm4="
     }
   },
   "aarch64-linux": {
     "c3-watchdog-d": {
       "asset": "c3-watchdog-aarch64",
-      "hash": "sha256-MFZs/+9BDEMotT6uC81HZwQpgaVefiQ0rrQme2NXLdQ="
+      "hash": "sha256-3T8oquHcFKeuBHhC2jCIkQe102fMF0S4R88KO2mUIQY="
     },
     "c3-watchdog-tui": {
       "asset": "c3-watchdog-tui-aarch64",
-      "hash": "sha256-6cTrggW4xLfeMKIReOeqLiuej1EfCQ1kd5xhEoEVpvc="
+      "hash": "sha256-VxTzMnlQXmqK0NguX4Z9pfkPBqFQJVOynHzvImHtJys="
     }
   }
 }
