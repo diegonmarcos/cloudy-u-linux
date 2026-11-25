@@ -22,6 +22,13 @@ export function expand(decl) {
     }
   }
   for (const t of decl.tools || []) rules.push(t);
+  // Declared matrix (owner contract 2026-11-25): every template expanded over every VM and repo.
+  const m = decl.matrix;
+  if (m) {
+    const fill = (tpl, vars) => tpl.replace(/\{(\w+)\}/g, (_, k) => (k in vars ? vars[k] : m[k] ?? `{${k}}`));
+    for (const vm of m.vms || []) for (const t of m.vm_templates || []) rules.push(`Bash(${fill(t, { vm })})`);
+    for (const repo of m.repos || []) for (const t of m.repo_templates || []) rules.push(`Bash(${fill(t, { repo })})`);
+  }
   return [...new Set(rules)];
 }
 
