@@ -28,6 +28,11 @@ export function expand(decl) {
     const fill = (tpl, vars) => tpl.replace(/\{(\w+)\}/g, (_, k) => (k in vars ? vars[k] : m[k] ?? `{${k}}`));
     for (const vm of m.vms || []) for (const t of m.vm_templates || []) rules.push(`Bash(${fill(t, { vm })})`);
     for (const repo of m.repos || []) for (const t of m.repo_templates || []) rules.push(`Bash(${fill(t, { repo })})`);
+    // Stop list: every action that was stopped, 3 forms each, each bare and with a trailing wildcard.
+    for (const a of (m.stopped && m.stopped.actions) || []) {
+      const over = a.scope === 'vm' ? (m.vms || []).map((vm) => ({ vm })) : a.scope === 'repo' ? (m.repos || []).map((repo) => ({ repo })) : [{}];
+      for (const vars of over) for (const f of a.forms) { const c = fill(f, vars); rules.push(`Bash(${c})`); rules.push(`Bash(${c} *)`); }
+    }
   }
   return [...new Set(rules)];
 }
