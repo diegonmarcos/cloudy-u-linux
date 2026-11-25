@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Drift guard: every repo's generated Claude/agent mirror must equal the SoT.
 # usage: check-mirrors.sh [repo-dir ...]   (default: every sibling checkout of
-# cloud-u-linux that has a _dotfiles/ folder). Exit 1 on any drift or on a repo
+# _git-repos-master that has a _dotfiles/ folder). Exit 1 on any drift or on a repo
 # listed in mirror-repos.txt that has no mirror at all (when run with --all).
 # Fix drift by regenerating with deploy-dotfiles.sh, never by editing a mirror.
 set -u
@@ -9,7 +9,7 @@ SOT="$(cd "$(dirname "$0")" && pwd)"
 P="$SOT/cloud-marketplace/c3-infra"
 repos=()
 if [ $# -gt 0 ]; then repos=("$@"); else
-  base="$(cd "$SOT/../../../.." && pwd)"
+  base="$(cd "$SOT/../.." && pwd)"
   for d in "$base"/*/; do [ -d "$d/_dotfiles" ] && repos+=("${d%/}"); done
 fi
 fail=0

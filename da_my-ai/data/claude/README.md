@@ -1,3 +1,12 @@
+<!-- GENERATED from _git-repos-master/0_claude-sot, DO NOT EDIT. Edit the source and run `sh 0_claude-sot/deploy-all.sh`. -->
+
+> **Source of truth moved (owner order 2026-11-25).** This config is owned by `0_claude-sot/` in the repo
+> `_git-repos-master` (GitHub `diegonmarcos/_git-repos-master`). Regenerate every mirror, including
+> cloud-u-linux `da_my-ai/data/claude`, with `sh 0_claude-sot/deploy-all.sh`; verify with
+> `0_claude-sot/deploy-all.sh --check` and `0_claude-sot/test-claude-sot.sh`. The dotfiles engine lives in
+> `0_claude-sot/engine/`. In cloud-u-linux this directory is a generated child mirror (`check-child.sh`).
+> Paths below that say `da_my-ai/data/claude` or `da_my-ai/engines/dotfiles` mean the SoT directory above.
+
 # claude/ — entry point, not storage
 
 Symlinks only. Nothing here is a real file; edit through the links.

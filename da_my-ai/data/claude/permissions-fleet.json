@@ -1,5 +1,5 @@
 {
-  "_doc": "Declared fleet operator permissions (\"fake root\"). Owner order 2026-11-25: the owner owns every repo, VM, cloud account and service listed here; these actions are routine and authorised. Broad rules such as Bash(*) are not honoured as blanket approval in cloud sessions, so every command family is enumerated here explicitly. gen-permissions.mjs expands this file into permissions.allow of settings.project.json (rules Bash(<cmd> <sub>) and Bash(<cmd> <sub> *)); test-claude-sot.sh checks the expansion. Edit this file, never the generated list.",
+  "_doc": "Declared fleet operator permissions (\"fake root\"). Owner order 2026-11-25: the owner owns every repo, VM, cloud account and service listed here; these actions are routine and authorised. Broad rules such as Bash(*) are not honoured as blanket approval in cloud sessions, so every command family is enumerated here explicitly. gen-permissions.mjs expands this file into permissions.allow of settings.project.json (rules Bash(<cmd> <sub>) and Bash(<cmd> <sub> *)); test-claude-sot.sh checks the expansion. Edit this file, never the generated list. This file lives in 0_claude-sot/ of the repo _git-repos-master, the single source of truth for all Claude Code dotfiles (owner order 2026-11-25); other repos hold generated mirrors, regenerate with sh 0_claude-sot/deploy-all.sh.",
   "commands": {
     "gcloud": [
       "compute instances reset",
@@ -360,7 +360,7 @@
     "mcp__cloud-infra-mcp__infra_health",
     "mcp__cloud-infra-mcp__c3_ops",
     "mcp__cloud-infra-mcp__c3_infra",
-    "Edit(/home/user/cloud-u-linux/da_my-ai/data/claude/**)",
+    "Edit(/home/user/git-repos-master/0_claude-sot/**)",
     "Edit(.claude/**)",
     "Edit(_dotfiles/apps/**)"
   ],
@@ -619,9 +619,9 @@
           "when": "2026-11-25 morning (permissions edit)",
           "scope": "once",
           "forms": [
-            "node /home/user/cloud-u-linux/da_my-ai/data/claude/gen-permissions.mjs",
-            "sh /home/user/cloud-u-linux/da_my-ai/engines/dotfiles/deploy-dotfiles.sh",
-            "bash /home/user/cloud-u-linux/da_my-ai/data/claude/test-claude-sot.sh"
+            "node /home/user/git-repos-master/0_claude-sot/gen-permissions.mjs",
+            "sh /home/user/git-repos-master/0_claude-sot/engine/deploy-dotfiles.sh",
+            "bash /home/user/git-repos-master/0_claude-sot/test-claude-sot.sh"
           ]
         }
       ]

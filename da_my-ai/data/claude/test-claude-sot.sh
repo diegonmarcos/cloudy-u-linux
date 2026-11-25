@@ -350,7 +350,9 @@ fi
 # Content-compare the deployed copy against the SoT. Absent = skip (CI and the
 # container have no ~/.claude); present-and-different = the installer has not
 # run here, and `my-ai usage --daemon` is what repairs it.
-STATUSLINE_SOT="$SOT/../statusline"
+# The statusline and the engine registry stay in cloud-u-linux (the child that ships the my-ai binary).
+U_LINUX="${CLOUD_U_LINUX_REPO:-$REPO/../cloud-u-linux}/da_my-ai"
+STATUSLINE_SOT="$U_LINUX/data/statusline"
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 if [ -d "$STATUSLINE_SOT" ] && [ -d "$CLAUDE_DIR" ]; then
   stale=""
@@ -501,8 +503,8 @@ check "the archive trigger is NOT in settings.base.json" \
 # Every engine folder carries a manifest (name, trigger, inputs, outputs, run)
 # and a README, and is registered in core/src/engines.rs; every registry entry
 # has a folder. The Rust unit test asserts the same from inside cargo.
-ENG="$SOT/../../engines"
-REG="$SOT/../../core/src/engines.rs"
+ENG="$U_LINUX/engines"
+REG="$U_LINUX/core/src/engines.rs"
 if [ -d "$ENG" ]; then
   for d in "$ENG"/*/; do
     n="$(basename "$d")"
