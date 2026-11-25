@@ -133,6 +133,8 @@ check "c3-infra is registered in cloud-marketplace" \
   "$(jq -r '[.plugins[].name] | index("c3-infra") != null' "$SOT/cloud-marketplace/.claude-plugin/marketplace.json")" true
 check "settings.project.json denies the github MCP and does not allow it" \
   "$(jq -r '(.deniedMcpServers | map(.serverName) | index("github") != null) and ((.permissions.allow | index("mcp__github")) == null)' "$SOT/settings.project.json")" true
+check "settings.project.json carries every rule declared in permissions-fleet.json" \
+  "$(node "$SOT/gen-permissions.mjs" --check >/dev/null 2>&1 && echo yes || echo no)" yes
 check "settings.project.json disables claude.ai connectors" \
   "$(jq -r '.disableClaudeAiConnectors' "$SOT/settings.project.json")" true
 check "settings.project.json wires each c3 guard hook exactly once" \

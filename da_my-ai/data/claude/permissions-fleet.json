@@ -1,0 +1,67 @@
+{
+  "_doc": "Declared fleet operator permissions (\"fake root\"). Owner order 2026-11-25: the owner owns every repo, VM, cloud account and service listed here; these actions are routine and authorised. Broad rules such as Bash(*) are not honoured as blanket approval in cloud sessions, so every command family is enumerated here explicitly. gen-permissions.mjs expands this file into permissions.allow of settings.project.json (rules Bash(<cmd> <sub>) and Bash(<cmd> <sub> *)); test-claude-sot.sh checks the expansion. Edit this file, never the generated list.",
+  "commands": {
+    "gcloud": [
+      "compute instances reset", "compute instances start", "compute instances stop", "compute instances describe",
+      "compute instances list", "compute instances get-serial-port-output", "compute instances add-metadata",
+      "compute instances update", "compute ssh", "compute scp", "compute disks list", "compute disks describe",
+      "compute operations list", "compute operations describe", "compute zones list", "compute firewall-rules list",
+      "run services list", "run services describe", "run services update", "run deploy", "run revisions list",
+      "run services update-traffic", "storage ls", "storage cp", "storage objects describe", "logging read",
+      "auth list", "config list", "projects list", "billing accounts list"
+    ],
+    "gsutil": ["ls", "cp", "stat", "du"],
+    "oci": [
+      "compute instance action", "compute instance get", "compute instance list", "compute instance update",
+      "compute instance-console-connection list", "compute vnic-attachment list", "network vnic get",
+      "os object list", "os object get", "os object put", "os bucket list", "iam region list", "usage-api usage-summary request-summaries"
+    ],
+    "gh": [
+      "api", "run list", "run view", "run watch", "run rerun", "run cancel", "run download",
+      "workflow list", "workflow view", "workflow run", "workflow enable", "workflow disable",
+      "release list", "release view", "release create", "release upload", "release download", "release delete-asset",
+      "repo view", "repo list", "repo clone", "secret list", "secret set", "variable list", "variable set",
+      "cache list", "cache delete", "auth status", "browse"
+    ],
+    "git": [
+      "status", "log", "diff", "show", "add", "commit", "push", "pull", "fetch", "merge", "rebase", "checkout",
+      "switch", "restore", "rm", "mv", "branch", "tag", "rev-parse", "ls-files", "grep", "blame", "remote",
+      "submodule", "config", "cat-file", "show-ref", "ls-remote", "cherry-pick", "revert", "clean -n", "describe", "reflog", "-c"
+    ],
+    "docker": [
+      "ps", "logs", "inspect", "stats", "top", "start", "stop", "restart", "kill", "pause", "unpause", "exec",
+      "pull", "images", "image ls", "image prune", "image rm", "system df", "system prune", "volume ls", "volume inspect",
+      "network ls", "network inspect", "events", "cp", "diff", "update", "compose"
+    ],
+    "systemctl": ["status", "start", "stop", "restart", "reload", "is-active", "list-units", "list-timers", "daemon-reload", "enable", "disable", "show", "cat"],
+    "journalctl": ["-u", "-t", "-k", "--since", "-n", "-p", "--no-pager"],
+    "wrangler": ["deploy", "secret put", "secret list", "tail", "whoami", "kv namespace list", "kv key list", "r2 bucket list", "d1 list"],
+    "cloudflared": ["tunnel list", "tunnel info", "tunnel route dns", "tunnel route ip"],
+    "ssh": ["gcp-proxy", "oci-apps", "oci-analytics", "oci-mail", "-o"],
+    "scp": ["-o"],
+    "rsync": ["-a", "-av", "-avz"],
+    "curl": ["-s", "-sS", "-o", "-I", "-m", "-X", "--max-time", "-w", "-H"],
+    "wget": ["-qO-", "-q"],
+    "nix": ["eval", "build", "flake show", "flake check", "store ping"],
+    "nix-instantiate": ["--parse", "--eval"],
+    "sops": ["-d", "-e", "--set", "updatekeys"],
+    "age": ["-d", "-e"],
+    "node": ["build.js", "-e", "--test"],
+    "python3": ["-c", "-m", "-I"],
+    "bash": ["-n", "-c"],
+    "sh": ["-c"],
+    "jq": ["-r", "-e", ".", "-c", "-s"],
+    "tailscale": ["status", "ping"],
+    "wg": ["show"],
+    "ip": ["addr", "route", "link", "-6"],
+    "ping": ["-c"],
+    "dig": ["+short"],
+    "nslookup": [],
+    "timeout": [],
+    "until": [],
+    "for": []
+  },
+  "tools": [
+    "Bash(git *)", "Bash(gh *)", "Bash(gcloud *)", "Bash(oci *)", "Bash(docker *)", "Bash(ssh *)", "Bash(curl *)"
+  ]
+}
