@@ -2,10 +2,10 @@
   "version": "latest",
   "aarch64-linux": {
     "my-ai":      "sha256-KymCpxSZ5tipGITlguGWwFhvMYuyzLe9MrPIBGesONE=",
-    "my-ai-dash": "sha256-GdmCXWfd/uSR14gBCve8EpqzoGvvtQ79YRglPOdhRZg="
+    "my-ai-dash": "sha256-6CzgWj59vzwqQQvbryWdwIjvOeQu7//+sAbHA+Yn/xk="
   },
   "x86_64-linux": {
     "my-ai":      "sha256-Fq9ASQKtO/khqMDQYqPdNE9FdkUXVfm6Pl1jjQfphCs=",
-    "my-ai-dash": "sha256-nJBeZkfd7zBdZysZgTaRhmXEZWP/17lI7l/aDFDrn9Q="
+    "my-ai-dash": "sha256-RkS1bWO39SnGPY5gwBqKW68wWi2+AhVp+jKXXhC7eJM="
   }
 }
